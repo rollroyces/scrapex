@@ -8,6 +8,7 @@ The rest of the package is implementation detail.
 """
 from __future__ import annotations
 
+from scrapex import china_llm as china
 from scrapex.errors import (
     ConfigurationError,
     ExtractionError,
@@ -44,5 +45,6 @@ __all__ = [
     "ScrapeResult",
     "ScrapexError",
     "__version__",
+    "china",
     "scrape",
 ]

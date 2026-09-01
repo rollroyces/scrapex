@@ -156,11 +156,32 @@ async def scrape(request: ScrapeRequest | dict[str, Any] | str) -> ScrapeResult:
         if strat == ExtractionStrategy.NONE:
             extracted = {}
         elif strat == ExtractionStrategy.LLM:
+            # Auto-resolve China preset names (e.g. "deepseek-v3") to the
+            # full litellm model string + region-aware api_base + env key.
+            llm_model = req.llm_model
+            llm_api_key = req.llm_api_key
+            api_base: str | None = None
+            try:
+                from scrapex.china_llm import get as get_preset
+                from scrapex.china_llm import resolve as resolve_preset
+
+                preset = get_preset(llm_model) if llm_model else None
+                if preset is not None and llm_model is not None:
+                    resolved = resolve_preset(
+                        llm_model, region=req.llm_region, api_key=llm_api_key
+                    )
+                    llm_model = resolved["model"]
+                    llm_api_key = resolved.get("api_key", llm_api_key)
+                    api_base = resolved.get("api_base")
+            except KeyError:
+                # Not a preset name — treat as raw litellm model string.
+                pass
             extracted = await get_llm_extractor().extract(
                 page.html,
                 req.schema_,
-                llm_model=req.llm_model,
-                llm_api_key=req.llm_api_key,
+                llm_model=llm_model,
+                llm_api_key=llm_api_key,
+                api_base=api_base,
                 markdown=md,
             )
         else:

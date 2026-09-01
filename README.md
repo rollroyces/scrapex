@@ -69,6 +69,7 @@ scrapex/
 ├── fetchers/            ← HTTP (httpx) + Browser (Playwright)
 ├── processing/          ← HTML → Markdown → chunks
 └── extractors/          ← CSS / XPath / Regex / LLM (swappable via protocol)
+└── china_llm.py         ← Curated presets for China-hosted LLM providers
 ```
 
 Borrowed from the best of [crawl4ai](https://github.com/unclecode/crawl4ai)
@@ -108,6 +109,85 @@ result = await scrape(ScrapeRequest(
     llm_model="gpt-4o-mini",
     llm_api_key="...",  # or set OPENAI_API_KEY env var
 ))
+```
+
+### China LLM providers — curated presets
+
+`scrapex.china_llm` ships curated presets for the major China-hosted LLM providers. Just pass the preset name as `llm_model` and the right `api_key`, `api_base`, and model string are auto-resolved:
+
+```python
+from scrapex import scrape, ScrapeRequest, Schema, FieldSpec, ExtractionStrategy
+
+result = await scrape(ScrapeRequest(
+    url="https://example.com",
+    schema=Schema(
+        strategy=ExtractionStrategy.LLM,
+        fields=[FieldSpec(name="title", description="Page title")],
+    ),
+    llm_model="deepseek-v3",          # preset name, not raw litellm string
+    # DEEPSEEK_API_KEY env var is auto-discovered
+))
+```
+
+Available presets (verified against litellm docs 2026-09-01):
+
+| Preset | Provider | Tier | Notes |
+|---|---|---|---|
+| `glm-4.7` | Zhipu (Z.AI) | flagship | 200K context, reasoning |
+| `glm-4.6` | Zhipu (Z.AI) | mid | 200K context |
+| `glm-flash` | Zhipu (Z.AI) | free | free tier, 128K context |
+| `qwen-max` | Alibaba QwenCloud | flagship | international Qwen |
+| `qwen-plus` | Alibaba QwenCloud | mid | balanced cost/quality |
+| `qwen-flash` | Alibaba QwenCloud | fast | high-volume scraping |
+| `qwen-turbo` | Alibaba DashScope | fast | legacy DashScope prefix |
+| `deepseek-v3` | DeepSeek | mid | strong general, cheap |
+| `deepseek-reasoner` | DeepSeek | mid | chain-of-thought, slower |
+| `kimi-v1-8k` | Moonshot | fast | short context, cheap |
+| `kimi-v1-128k` | Moonshot | mid | long context, big pages |
+| `doubao-flash` | ByteDance Volcengine | fast | fast + cheap |
+
+Region routing for mainland China (Moonshot + Qwen have separate `.cn` endpoints):
+
+```python
+result = await scrape(ScrapeRequest(
+    url="...",
+    schema=...,
+    llm_model="kimi-v1-128k",
+    llm_region="cn",          # routes to api.moonshot.cn automatically
+    # MOONSHOT_API_KEY env var is auto-discovered
+))
+```
+
+Env-var discovery per provider (first one set wins):
+
+| Provider | Env vars (priority order) |
+|---|---|
+| DeepSeek | `DEEPSEEK_API_KEY` |
+| Qwen | `QWENCLOUD_API_KEY` → `QWEN_AI_PLATFORM_API_KEY` → `DASHSCOPE_API_KEY` |
+| Zhipu (Z.AI) | `ZAI_API_KEY` |
+| Moonshot | `MOONSHOT_API_KEY` |
+| Volcengine | `VOLCENGINE_API_KEY` → `ARK_API_KEY` |
+
+**Not yet supported** (verified absent from current litellm provider list or unstable):
+Baidu Wenxin / ERNIE, Hunyuan, Spark, MiniMax. PRs welcome once upstream integration is stable.
+
+You can also import presets directly:
+
+```python
+from scrapex import china
+
+# All presets, sorted flagship → free
+for preset in china.presets():
+    print(preset.name, preset.tier, preset.description)
+
+# One preset
+preset = china.deepseek_v3()
+print(preset.model)   # "deepseek/deepseek-chat"
+print(preset.provider)  # "deepseek"
+
+# Resolve to litellm kwargs (model, api_key, optional api_base)
+kwargs = china.resolve("kimi-v1-128k", region="cn")
+# {'model': 'moonshot/moonshot-v1-128k', 'api_key': '...', 'api_base': 'https://api.moonshot.cn/v1'}
 ```
 
 ### Auto — let scrapex pick the fetcher

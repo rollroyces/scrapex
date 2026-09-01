@@ -51,6 +51,7 @@ class LlmExtractor(Extractor):
         llm_model: str | None = None,
         llm_api_key: str | None = None,
         markdown: str | None = None,
+        api_base: str | None = None,
     ) -> dict[str, Any]:
         self._ensure_litellm()
         if not llm_model:
@@ -69,14 +70,20 @@ class LlmExtractor(Extractor):
             indent=2,
         )
         prompt = _EXTRACTION_PROMPT.format(schema=schema_json, content=content)
+        # Only pass api_key / api_base if explicitly set — letting them fall
+        # through as None lets litellm pick up provider env vars itself.
+        call_kwargs: dict[str, Any] = {
+            "model": llm_model,
+            "messages": [{"role": "user", "content": prompt}],
+            "response_format": {"type": "json_object"},
+            "temperature": 0,
+        }
+        if llm_api_key:
+            call_kwargs["api_key"] = llm_api_key
+        if api_base:
+            call_kwargs["api_base"] = api_base
         try:
-            resp = await self._litellm.acompletion(
-                model=llm_model,
-                api_key=llm_api_key,
-                messages=[{"role": "user", "content": prompt}],
-                response_format={"type": "json_object"},
-                temperature=0,
-            )
+            resp = await self._litellm.acompletion(**call_kwargs)
         except Exception as e:
             raise ExtractionError("llm", f"LLM call failed: {e}") from e
         text = resp.choices[0].message.content or "{}"

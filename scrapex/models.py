@@ -102,9 +102,14 @@ class ScrapeRequest(BaseModel):
     timeout_s: float = Field(default=30.0, gt=0, le=300)
     user_agent: str | None = None
     proxy: str | None = None
-    # LLM strategy only — see ``litellm`` model strings
+    # LLM strategy only — see ``litellm`` model strings, or pass a
+    # :func:`scrapex.china_llm` preset name (e.g. ``"deepseek-v3"``).
     llm_model: str | None = None
     llm_api_key: str | None = None
+    # Region routing for China-hosted models: ``"intl"`` (default) or ``"cn"``.
+    # Only takes effect for models with separate China endpoints
+    # (Moonshot, Qwen).
+    llm_region: Literal["intl", "cn"] = "intl"
     # Markdown output controls
     include_markdown: bool = True
     markdown_max_chars: int | None = Field(default=None, ge=100)
