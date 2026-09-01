@@ -65,6 +65,10 @@ def html_to_markdown(html: str, *, max_chars: int | None = None) -> str:
 
 def chunk_markdown(md: str, *, max_chars: int = 2000, overlap: int = 200) -> list[str]:
     """Split markdown into RAG-friendly chunks by paragraph boundaries."""
+    if md is None:
+        # Explicit guard — the previous ``if not md`` silently accepted None
+        # (since ``not None`` is True) which masked caller bugs. Make it loud.
+        raise TypeError("chunk_markdown() requires a str; got None")
     if not md:
         return []
     paras = [p.strip() for p in md.split("\n\n") if p.strip()]

@@ -3,14 +3,17 @@ name = "scrapex"
 version = "0.1.0"
 description = "AI-friendly web scraping for Python — URL + schema in, clean markdown + JSON out"
 readme = "README.md"
-license = { text = "AGPL-3.0-or-later" }
+license = "AGPL-3.0-or-later"
+# NOTE: PEP 639 forbids mixing ``license = "..."`` SPDX expressions with
+# ``License ::`` classifiers — pick one. We use the SPDX expression so that
+# the license metadata is machine-readable. The classifier form would be:
+#   classifiers += ["License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)"]
 authors = [{ name = "rollroyces", email = "hello@rollroyces.dev" }]
 requires-python = ">=3.10"
 keywords = ["scraping", "crawler", "ai", "llm", "rag", "markdown", "extraction"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",

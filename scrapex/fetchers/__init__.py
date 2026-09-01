@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import abc
 from dataclasses import dataclass
-from typing import Literal
+from typing import Any, Literal
 
 import httpx
 
@@ -109,16 +109,20 @@ class BrowserFetcher(Fetcher):
                 "BrowserFetcher needs the 'browser' extra: "
                 "pip install 'scrapex[browser]' && playwright install chromium"
             ) from e
-        self._playwright = None
-        self._browser = None
+        # Typed as Any because playwright is optional — mypy shouldn't
+        # chase types it can't see when the dep isn't installed.
+        self._playwright: Any = None
+        self._browser: Any = None
 
     async def _ensure_browser(self, proxy: str | None) -> None:
         if self._browser is not None:
             return
-        from playwright.async_api import async_playwright
+        from playwright.async_api import (
+            async_playwright,
+        )
 
         self._playwright = await async_playwright().start()
-        kwargs: dict = {"headless": True}
+        kwargs: dict[str, Any] = {"headless": True}
         if proxy:
             kwargs["proxy"] = {"server": proxy}
         self._browser = await self._playwright.chromium.launch(**kwargs)

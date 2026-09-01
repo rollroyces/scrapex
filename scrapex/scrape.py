@@ -26,7 +26,7 @@ from tenacity import (
 from scrapex.errors import FetchError, RenderError
 from scrapex.extractors import get as get_extractor
 from scrapex.extractors.llm import get_llm_extractor
-from scrapex.fetchers import FetchedPage, choose_fetcher
+from scrapex.fetchers import FetchedPage, Fetcher, choose_fetcher
 from scrapex.models import (
     ExtractionStrategy,
     RenderMode,
@@ -51,7 +51,7 @@ def _page_likely_needs_js(html: str) -> bool:
 
 
 async def _fetch_with_retry(
-    fetcher, request: ScrapeRequest, *, render_mode: str
+    fetcher: Fetcher, request: ScrapeRequest, *, render_mode: str
 ) -> FetchedPage:
     """Fetch with tenacity retries on transient errors only.
 
@@ -67,12 +67,13 @@ async def _fetch_with_retry(
     )
     async for attempt in retryer:
         with attempt:
-            return await fetcher.fetch(
+            result: FetchedPage = await fetcher.fetch(
                 str(request.url),
                 timeout_s=request.timeout_s,
                 user_agent=request.user_agent,
                 proxy=request.proxy,
             )
+            return result
     raise FetchError(str(request.url), "exhausted retries")  # pragma: no cover
 
 
@@ -194,11 +195,6 @@ def _title_from_md(md: str | None) -> str | None:
         if line.startswith("#"):
             return line.lstrip("#").strip()
     return None
-
-
-# Expose for ad-hoc use — lets advanced users run individual phases
-async def _shutdown(fetcher) -> None:
-    await fetcher.aclose()
 
 
 __all__ = ["scrape"]

@@ -35,7 +35,7 @@ class LlmExtractor(Extractor):
         if self._litellm is not None:
             return
         try:
-            import litellm  # type: ignore[import-not-found]
+            import litellm
 
             self._litellm = litellm
         except ImportError as e:
