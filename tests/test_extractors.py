@@ -1,4 +1,5 @@
 """Extractor unit tests against known HTML fixtures."""
+
 from __future__ import annotations
 
 import pytest

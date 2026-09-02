@@ -2,6 +2,7 @@
 
 Each test locks in a specific fix. If you break the fix, these tests fail.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -41,9 +42,7 @@ async def test_huge_html_returns_something():
     big = "x" * 100_000
     html = f"<html><body><p>{big}</p></body></html>"
     with respx.mock:
-        respx.get(url="https://example.com/huge").mock(
-            return_value=Response(200, text=html)
-        )
+        respx.get(url="https://example.com/huge").mock(return_value=Response(200, text=html))
         result = await scrape(ScrapeRequest(url="https://example.com/huge"))
         assert result.markdown is not None
         assert len(result.markdown) > 0
@@ -102,7 +101,9 @@ async def test_required_field_present_no_spurious_warning():
                 ),
             )
         )
-        required_warnings = [w for w in result.extraction_warnings if "t" in w and "required" in w.lower()]
+        required_warnings = [
+            w for w in result.extraction_warnings if "t" in w and "required" in w.lower()
+        ]
         assert required_warnings == [], f"unexpected warnings: {required_warnings}"
 
 
@@ -113,6 +114,7 @@ async def test_required_field_present_no_spurious_warning():
 # ---------------------------------------------------------------------------
 def test_css_extractor_includes_all_fields_even_when_missing():
     from scrapex.extractors import get
+
     schema = Schema(
         strategy=ExtractionStrategy.CSS,
         fields=[
@@ -121,12 +123,15 @@ def test_css_extractor_includes_all_fields_even_when_missing():
             FieldSpec(name="missing", selector="h1.doesnt-exist"),
         ],
     )
-    out = asyncio_run(get("css").extract("<html><body><h1 class='exists'>X</h1></body></html>", schema))
+    out = asyncio_run(
+        get("css").extract("<html><body><h1 class='exists'>X</h1></body></html>", schema)
+    )
     assert out == {"title": "X", "no_selector": None, "missing": None}
 
 
 def asyncio_run(coro):
     import asyncio
+
     return asyncio.run(coro)
 
 
@@ -136,9 +141,7 @@ def asyncio_run(coro):
 async def test_url_trailing_slash_variants():
     for url in ["https://example.com/", "https://example.com"]:
         with respx.mock:
-            respx.get(url=url).mock(
-                return_value=Response(200, text="<p>x</p>")
-            )
+            respx.get(url=url).mock(return_value=Response(200, text="<p>x</p>"))
             result = await scrape(ScrapeRequest(url=url))
             assert result.status == 200
 
@@ -148,6 +151,7 @@ async def test_url_trailing_slash_variants():
 # ---------------------------------------------------------------------------
 def test_scrape_rejects_non_str_non_dict_non_request():
     import asyncio
+
     with pytest.raises((TypeError, Exception)) as _:
         # Run synchronously to get a real exception, not a coroutine warning
         try:

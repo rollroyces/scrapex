@@ -5,6 +5,7 @@ whole family with a single ``except`` clause. Every error carries an
 optional ``hint`` (human-readable suggestion for what to try next) so the
 CLI and library users get actionable feedback, not just a stack trace.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -66,8 +67,7 @@ class FetchError(ScrapexError):
             return "Rate limited. Increase delay between requests or rotate proxies."
         if 500 <= status < 600:
             return (
-                f"Server error (HTTP {status}). "
-                "Try render=browser, or retry with max_retries > 2."
+                f"Server error (HTTP {status}). Try render=browser, or retry with max_retries > 2."
             )
         return None
 
@@ -111,10 +111,7 @@ class SchemaError(ScrapexError):
 
     def __init__(self, message: str, *, hint: str | None = None) -> None:
         if hint is None:
-            hint = (
-                "Schema is invalid. "
-                "Check that fields have names, and selectors are non-empty."
-            )
+            hint = "Schema is invalid. Check that fields have names, and selectors are non-empty."
         super().__init__(message, hint=hint)
 
 

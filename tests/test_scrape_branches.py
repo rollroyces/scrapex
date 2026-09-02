@@ -19,6 +19,7 @@ Covers the 79% → 100% gap:
 - scrape() accepts str, dict, ScrapeRequest
 - elapsed_ms is set to a positive integer
 """
+
 from __future__ import annotations
 
 import httpx
@@ -156,7 +157,7 @@ def test_page_likely_needs_js_with_markers():
 
 def test_page_likely_needs_js_with_react_root():
     """React root div is a strong JS-only marker."""
-    html = "<div id=\"root\"></div>" + ("padding " * 200)
+    html = '<div id="root"></div>' + ("padding " * 200)
     assert _page_likely_needs_js(html) is True
 
 
@@ -198,10 +199,12 @@ async def test_scrape_render_http_explicit():
             return_value=Response(500, text="Internal Server Error")
         )
         with pytest.raises(FetchError) as exc_info:
-            await scrape(ScrapeRequest(
-                url="https://example.com",
-                render=RenderMode.HTTP,
-            ))
+            await scrape(
+                ScrapeRequest(
+                    url="https://example.com",
+                    render=RenderMode.HTTP,
+                )
+            )
         assert exc_info.value.status == 500
 
 
@@ -215,9 +218,7 @@ async def test_scrape_render_browser_no_fallback():
     with respx.mock:
         # If scrape() tried HTTP, this would intercept and pass. We expect
         # browser mode to be attempted instead.
-        respx.get("https://example.com/").mock(
-            return_value=Response(200, text=SAMPLE)
-        )
+        respx.get("https://example.com/").mock(return_value=Response(200, text=SAMPLE))
         # Patch choose_fetcher (in the source module) to return a failing browser
         import sys
 
@@ -236,12 +237,18 @@ async def test_scrape_render_browser_no_fallback():
 
         fake_browser = FakeBrowser()
 
-        with patch.object(sys.modules["scrapex.scrape"], "choose_fetcher", return_value=fake_browser), \
-         pytest.raises(RenderError, match="fake browser crash"):
-            await scrape(ScrapeRequest(
-                url="https://example.com",
-                render=RenderMode.BROWSER,
-            ))
+        with (
+            patch.object(
+                sys.modules["scrapex.scrape"], "choose_fetcher", return_value=fake_browser
+            ),
+            pytest.raises(RenderError, match="fake browser crash"),
+        ):
+            await scrape(
+                ScrapeRequest(
+                    url="https://example.com",
+                    render=RenderMode.BROWSER,
+                )
+            )
         # Confirm the browser was called
         assert len(fake_browser.calls) == 1
 
@@ -291,10 +298,12 @@ async def test_scrape_include_markdown_false_html_is_set():
         respx.get(url__regex=r"^https://example\.com/?$").mock(
             return_value=Response(200, text=SAMPLE)
         )
-        result = await scrape(ScrapeRequest(
-            url="https://example.com",
-            include_markdown=False,
-        ))
+        result = await scrape(
+            ScrapeRequest(
+                url="https://example.com",
+                include_markdown=False,
+            )
+        )
     assert result.html is not None
     assert result.markdown is None
 
@@ -329,10 +338,12 @@ async def test_scrape_with_none_strategy_returns_empty_extracted():
         respx.get(url__regex=r"^https://example\.com/?$").mock(
             return_value=Response(200, text=SAMPLE)
         )
-        result = await scrape(ScrapeRequest(
-            url="https://example.com",
-            schema=Schema(strategy=ExtractionStrategy.NONE, fields=[]),
-        ))
+        result = await scrape(
+            ScrapeRequest(
+                url="https://example.com",
+                schema=Schema(strategy=ExtractionStrategy.NONE, fields=[]),
+            )
+        )
     assert result.extracted == {}
 
 
@@ -341,15 +352,17 @@ async def test_scrape_required_field_missing_emits_warning():
         respx.get(url__regex=r"^https://example\.com/?$").mock(
             return_value=Response(200, text="<html><body><p>no heading</p></body></html>")
         )
-        result = await scrape(ScrapeRequest(
-            url="https://example.com",
-            schema=Schema(
-                strategy=ExtractionStrategy.CSS,
-                fields=[
-                    FieldSpec(name="missing_required", selector="h1.x", required=True),
-                ],
-            ),
-        ))
+        result = await scrape(
+            ScrapeRequest(
+                url="https://example.com",
+                schema=Schema(
+                    strategy=ExtractionStrategy.CSS,
+                    fields=[
+                        FieldSpec(name="missing_required", selector="h1.x", required=True),
+                    ],
+                ),
+            )
+        )
     assert any("missing_required" in w for w in result.extraction_warnings)
 
 
@@ -358,13 +371,15 @@ async def test_scrape_required_field_present_no_warning():
         respx.get(url__regex=r"^https://example\.com/?$").mock(
             return_value=Response(200, text='<html><body><h1 class="t">X</h1></body></html>')
         )
-        result = await scrape(ScrapeRequest(
-            url="https://example.com",
-            schema=Schema(
-                strategy=ExtractionStrategy.CSS,
-                fields=[FieldSpec(name="t", selector="h1.t", required=True)],
-            ),
-        ))
+        result = await scrape(
+            ScrapeRequest(
+                url="https://example.com",
+                schema=Schema(
+                    strategy=ExtractionStrategy.CSS,
+                    fields=[FieldSpec(name="t", selector="h1.t", required=True)],
+                ),
+            )
+        )
     assert all("required" not in w.lower() or "t" not in w for w in result.extraction_warnings)
 
 
@@ -400,20 +415,30 @@ async def test_scrape_llm_with_raw_litellm_string(monkeypatch, respx_mock):
     monkeypatch.setattr(
         LlmExtractor,
         "_ensure_litellm",
-        lambda self: setattr(self, "_litellm", type("F", (), {
-            "acompletion": staticmethod(fake_acompletion),
-        })()),
+        lambda self: setattr(
+            self,
+            "_litellm",
+            type(
+                "F",
+                (),
+                {
+                    "acompletion": staticmethod(fake_acompletion),
+                },
+            )(),
+        ),
     )
 
-    result = await scrape(ScrapeRequest(
-        url="https://example.com",
-        schema=Schema(
-            strategy=ExtractionStrategy.LLM,
-            fields=[FieldSpec(name="title", description="x")],
-        ),
-        llm_model="openai/gpt-4o-mini",  # raw litellm string, not a preset
-        llm_api_key="sk-explicit",  # explicit key must reach litellm
-    ))
+    result = await scrape(
+        ScrapeRequest(
+            url="https://example.com",
+            schema=Schema(
+                strategy=ExtractionStrategy.LLM,
+                fields=[FieldSpec(name="title", description="x")],
+            ),
+            llm_model="openai/gpt-4o-mini",  # raw litellm string, not a preset
+            llm_api_key="sk-explicit",  # explicit key must reach litellm
+        )
+    )
     assert captured["model"] == "openai/gpt-4o-mini"
     assert captured["api_key"] == "sk-explicit"
     assert result.extracted == {"title": "ok"}
@@ -448,19 +473,29 @@ async def test_scrape_llm_with_unknown_preset_falls_through_to_raw(monkeypatch, 
     monkeypatch.setattr(
         LlmExtractor,
         "_ensure_litellm",
-        lambda self: setattr(self, "_litellm", type("F", (), {
-            "acompletion": staticmethod(fake_acompletion),
-        })()),
+        lambda self: setattr(
+            self,
+            "_litellm",
+            type(
+                "F",
+                (),
+                {
+                    "acompletion": staticmethod(fake_acompletion),
+                },
+            )(),
+        ),
     )
 
-    result = await scrape(ScrapeRequest(
-        url="https://example.com",
-        schema=Schema(
-            strategy=ExtractionStrategy.LLM,
-            fields=[FieldSpec(name="x", description="x")],
-        ),
-        llm_model="totally/unknown-model",  # not a known preset, not real
-    ))
+    result = await scrape(
+        ScrapeRequest(
+            url="https://example.com",
+            schema=Schema(
+                strategy=ExtractionStrategy.LLM,
+                fields=[FieldSpec(name="x", description="x")],
+            ),
+            llm_model="totally/unknown-model",  # not a known preset, not real
+        )
+    )
     # Passed through unchanged to litellm
     assert captured["model"] == "totally/unknown-model"
     assert result.extracted == {"x": "y"}
@@ -525,7 +560,6 @@ async def test_scrape_auto_browser_also_fails_propagates_error(monkeypatch, resp
         return_value=Response(500, text="boom")
     )
 
-
     class FailingBrowser:
         async def fetch(self, *args, **kwargs):
             raise FetchError("https://example.com", "browser also failed", status=500)
@@ -555,11 +589,13 @@ async def test_scrape_retries_on_transient_then_succeeds(monkeypatch, respx_mock
 
     respx_mock.get(url__regex=r"^https://example\.com/?$").mock(side_effect=side_effect)
 
-    result = await scrape(ScrapeRequest(
-        url="https://example.com",
-        render=RenderMode.HTTP,  # disable auto-fallback so we test pure retry
-        max_retries=3,
-    ))
+    result = await scrape(
+        ScrapeRequest(
+            url="https://example.com",
+            render=RenderMode.HTTP,  # disable auto-fallback so we test pure retry
+            max_retries=3,
+        )
+    )
     assert result.status == 200
     # Two calls happened: one failure + one success
     assert call_count["n"] == 2
@@ -570,10 +606,7 @@ async def test_scrape_retries_on_transient_then_succeeds(monkeypatch, respx_mock
 # ---------------------------------------------------------------------------
 async def test_scrape_auto_404_does_not_trigger_browser(monkeypatch, respx_mock):
     """4xx is definitive — don't waste time trying the browser."""
-    respx_mock.get("https://example.com/missing").mock(
-        return_value=Response(404, text="Not Found")
-    )
-
+    respx_mock.get("https://example.com/missing").mock(return_value=Response(404, text="Not Found"))
 
     browser_calls = {"n": 0}
 
@@ -606,6 +639,7 @@ async def test_scrape_auto_404_does_not_trigger_browser(monkeypatch, respx_mock)
         return Http404Fetcher()
 
     import sys
+
     monkeypatch.setattr(sys.modules["scrapex.scrape"], "choose_fetcher", selective_choose)
 
     with pytest.raises(FetchError) as exc_info:
@@ -630,8 +664,11 @@ async def test_scrape_passes_proxy_to_fetcher(monkeypatch, respx_mock):
     class FakeFetcher:
         async def fetch(self, *args, **kwargs):
             return fetchers_mod.FetchedPage(
-                url="https://example.com/", status=200, html=SAMPLE,
-                render_mode="http", title="S",
+                url="https://example.com/",
+                status=200,
+                html=SAMPLE,
+                render_mode="http",
+                title="S",
             )
 
         async def aclose(self):
@@ -642,10 +679,12 @@ async def test_scrape_passes_proxy_to_fetcher(monkeypatch, respx_mock):
         return FakeFetcher()
 
     _patch_choose_fetcher(monkeypatch, fake_choose)
-    await scrape(ScrapeRequest(
-        url="https://example.com",
-        proxy="http://my-proxy:8080",
-    ))
+    await scrape(
+        ScrapeRequest(
+            url="https://example.com",
+            proxy="http://my-proxy:8080",
+        )
+    )
     assert captured_kwargs["proxy"] == "http://my-proxy:8080"
 
 
@@ -659,10 +698,12 @@ async def test_scrape_marks_truncation_in_markdown():
         respx.get(url__regex=r"^https://example\.com/?$").mock(
             return_value=Response(200, text=long_html)
         )
-        result = await scrape(ScrapeRequest(
-            url="https://example.com",
-            markdown_max_chars=500,
-        ))
+        result = await scrape(
+            ScrapeRequest(
+                url="https://example.com",
+                markdown_max_chars=500,
+            )
+        )
     assert result.markdown is not None
     assert "[…truncated]" in result.markdown
     assert len(result.markdown) < 1000

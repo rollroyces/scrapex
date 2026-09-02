@@ -4,6 +4,7 @@ We use :mod:`trafilatura` for the heavy lifting (it handles boilerplate
 removal, table preservation, and link extraction well) and post-process
 to normalise whitespace.
 """
+
 from __future__ import annotations
 
 import re

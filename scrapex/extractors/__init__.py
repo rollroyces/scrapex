@@ -4,6 +4,7 @@ Each strategy is a module under ``scrapex.extractors.*`` that exposes an
 async ``extract(html, schema) -> dict`` function. The protocol here is the
 contract.
 """
+
 from __future__ import annotations
 
 import abc
@@ -19,9 +20,7 @@ class Extractor(abc.ABC):
     name: str = "abstract"
 
     @abc.abstractmethod
-    async def extract(
-        self, html: str, schema: Schema
-    ) -> dict[str, Any]:
+    async def extract(self, html: str, schema: Schema) -> dict[str, Any]:
         """Return ``{field_name: value, ...}``.
 
         Missing fields may be omitted; the caller will record warnings.
@@ -42,13 +41,12 @@ def register(extractor: Extractor) -> None:
 def get(name: str) -> Extractor:
     """Look up an extractor by name; raises :class:`KeyError` if missing."""
     if name not in _REGISTRY:
-        raise KeyError(
-            f"Unknown extractor '{name}'. Available: {sorted(_REGISTRY)}"
-        )
+        raise KeyError(f"Unknown extractor '{name}'. Available: {sorted(_REGISTRY)}")
     return _REGISTRY[name]
 
 
 def available() -> list[str]:
+    """Return the sorted list of all registered extractor names."""
     return sorted(_REGISTRY)
 
 

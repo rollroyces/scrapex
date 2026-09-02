@@ -3,6 +3,7 @@
 Real HTTP calls (example.com, httpbin) verify end-to-end. The LLM extractor
 is tested with a mocked litellm — never hits a real provider in CI.
 """
+
 from __future__ import annotations
 
 import pytest

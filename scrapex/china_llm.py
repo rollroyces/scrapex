@@ -20,6 +20,7 @@ All preset model strings below are taken from the live litellm docs
 (verified 2026-09-01). If a model is deprecated upstream, litellm will
 raise at call time — we surface that error directly rather than masking it.
 """
+
 from __future__ import annotations
 
 import os
@@ -201,9 +202,7 @@ def get(name: str) -> ModelPreset:
     'deepseek/deepseek-chat'
     """
     if name not in _PRESETS:
-        raise KeyError(
-            f"Unknown preset '{name}'. Available: {sorted(_PRESETS)}"
-        )
+        raise KeyError(f"Unknown preset '{name}'. Available: {sorted(_PRESETS)}")
     return _PRESETS[name]
 
 
@@ -250,11 +249,11 @@ def resolve(
     api_key:
         Explicit key — if ``None``, falls back to :func:`discover_api_key`.
 
-    Returns
+    Returns:
     -------
     dict with keys ``model``, ``api_key``, and optionally ``api_base``.
 
-    Raises
+    Raises:
     ------
     KeyError:
         If ``preset_name`` is not a known preset.
@@ -268,8 +267,7 @@ def resolve(
     if not key:
         env_vars = _PROVIDER_ENV_VARS.get(preset.provider, ())
         raise ConfigurationError(
-            f"No API key found for provider '{preset.provider}'. "
-            f"Set one of: {', '.join(env_vars)}"
+            f"No API key found for provider '{preset.provider}'. Set one of: {', '.join(env_vars)}"
         )
     out: dict[str, str] = {"model": preset.model, "api_key": key}
     base = api_base_for(preset.provider, region)

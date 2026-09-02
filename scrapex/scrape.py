@@ -10,6 +10,7 @@ This file owns the request lifecycle:
 The orchestrator never imports strategy implementations; it goes through
 the registry so new strategies can register themselves without changes here.
 """
+
 from __future__ import annotations
 
 import re
@@ -93,7 +94,7 @@ def _is_transient(exc: BaseException) -> bool:
 async def scrape(request: ScrapeRequest | dict[str, Any] | str) -> ScrapeResult:
     """Fetch + clean + extract in one call.
 
-    Examples
+    Examples:
     --------
     >>> import asyncio
     >>> from scrapex import scrape, ScrapeRequest, Schema, FieldSpec, ExtractionStrategy
@@ -167,9 +168,7 @@ async def scrape(request: ScrapeRequest | dict[str, Any] | str) -> ScrapeResult:
 
                 preset = get_preset(llm_model) if llm_model else None
                 if preset is not None and llm_model is not None:
-                    resolved = resolve_preset(
-                        llm_model, region=req.llm_region, api_key=llm_api_key
-                    )
+                    resolved = resolve_preset(llm_model, region=req.llm_region, api_key=llm_api_key)
                     llm_model = resolved["model"]
                     llm_api_key = resolved.get("api_key", llm_api_key)
                     api_base = resolved.get("api_base")

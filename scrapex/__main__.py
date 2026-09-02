@@ -7,6 +7,7 @@ Try it with::
 
 No Python required to use it — just an ``import scrapex`` install.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -49,6 +50,7 @@ _console: Any
 if _HAS_RICH:
     _console = RichConsole()
 else:
+
     class _FallbackConsole:
         def print(self, *args: Any, **kwargs: Any) -> None:
             print(*args)
@@ -154,6 +156,12 @@ def _show_result(result: ScrapeResult) -> None:
 # Argument parser
 # ---------------------------------------------------------------------------
 def build_parser() -> argparse.ArgumentParser:
+    """Construct the CLI argument parser.
+
+    Returned parser exposes the same flags documented in the README's
+    CLI section. Lives in its own function so tests can introspect it
+    without invoking the full ``main()`` flow.
+    """
     p = argparse.ArgumentParser(
         prog="scrapex",
         description="Scrape a URL with AI-friendly output. "
@@ -161,23 +169,27 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("url", help="URL to scrape")
     p.add_argument(
-        "--strategy", "-s",
+        "--strategy",
+        "-s",
         choices=["css", "xpath", "regex", "llm", "none"],
         default="none",
         help="Extraction strategy (default: none — just markdown)",
     )
     p.add_argument(
-        "--schema", "-S",
+        "--schema",
+        "-S",
         help="Comma-separated fields as name:selector[:attr] pairs, e.g. "
         "'title:h1,price:span.price:data-amount'",
     )
     p.add_argument(
-        "--preset", "-p",
+        "--preset",
+        "-p",
         choices=[p.name for p in china.presets()],
         help="China LLM preset (implies --strategy llm). e.g. deepseek-v3",
     )
     p.add_argument(
-        "--region", "-r",
+        "--region",
+        "-r",
         choices=["intl", "cn"],
         default="intl",
         help="API region for China LLM presets (default: intl)",
@@ -189,23 +201,35 @@ def build_parser() -> argparse.ArgumentParser:
         help="Fetch strategy (default: auto — HTTP first, browser fallback)",
     )
     p.add_argument(
-        "--timeout", "-t", type=float, default=30.0,
+        "--timeout",
+        "-t",
+        type=float,
+        default=30.0,
         help="Timeout in seconds (default: 30)",
     )
     p.add_argument(
-        "--retries", type=int, default=2,
+        "--retries",
+        type=int,
+        default=2,
         help="Max retries on transient errors (default: 2)",
     )
     p.add_argument(
-        "--max-chars", type=int, default=None,
+        "--max-chars",
+        type=int,
+        default=None,
         help="Max characters in markdown output",
     )
     p.add_argument(
-        "--description", "-d", action="append", default=[],
+        "--description",
+        "-d",
+        action="append",
+        default=[],
         help="Field description (LLM strategy). Repeatable. Use after --schema.",
     )
     p.add_argument(
-        "--version", action="version", version=f"scrapex {__version__}",
+        "--version",
+        action="version",
+        version=f"scrapex {__version__}",
     )
     return p
 
@@ -235,9 +259,7 @@ def _parse_schema(
         description = None
         if descriptions:
             description = descriptions.pop(0)
-        fields.append(
-            FieldSpec(name=name, selector=selector, attr=attr, description=description)
-        )
+        fields.append(FieldSpec(name=name, selector=selector, attr=attr, description=description))
     if not fields:
         return None
     return Schema(strategy=strategy, fields=fields)
@@ -247,6 +269,20 @@ def _parse_schema(
 # Main entry
 # ---------------------------------------------------------------------------
 def main(argv: list[str] | None = None) -> int:
+    """CLI entry point. Returns the process exit code.
+
+    Exit codes follow POSIX convention:
+        0 — success
+        1 — scrape failed (any ``ScrapexError``, including unexpected internal errors)
+        2 — bad arguments (Pydantic URL validation failure, etc.)
+        130 — interrupted (SIGINT, KeyboardInterrupt)
+
+    Parameters
+    ----------
+    argv:
+        Optional list of CLI args. When ``None``, ``sys.argv[1:]`` is used.
+        Tests pass a custom list to drive the CLI without forking a process.
+    """
     args = build_parser().parse_args(argv)
 
     # Resolve strategy: preset implies llm; --schema with selectors implies css
@@ -268,7 +304,9 @@ def main(argv: list[str] | None = None) -> int:
             strategy=ExtractionStrategy.LLM,
             fields=[
                 FieldSpec(name="title", description="Page title or main heading"),
-                FieldSpec(name="summary", description="One-sentence summary of what the page is about"),
+                FieldSpec(
+                    name="summary", description="One-sentence summary of what the page is about"
+                ),
             ],
         )
 
@@ -280,9 +318,7 @@ def main(argv: list[str] | None = None) -> int:
         # llm_model: preset → that name; LLM-without-preset → sensible default
         # (user can always set OPENAI_API_KEY env var). Without this, the
         # orchestrator's LLM branch fails with "llm_model required".
-        llm_model = args.preset or (
-            "gpt-4o-mini" if strategy == ExtractionStrategy.LLM else None
-        )
+        llm_model = args.preset or ("gpt-4o-mini" if strategy == ExtractionStrategy.LLM else None)
         req = ScrapeRequest(
             url=args.url,
             schema=schema,
@@ -317,6 +353,7 @@ def main(argv: list[str] | None = None) -> int:
         _show_error_panel(wrapped)
         if os.environ.get("SCRAPEX_DEBUG"):
             import traceback
+
             traceback.print_exc()
         return 1
 

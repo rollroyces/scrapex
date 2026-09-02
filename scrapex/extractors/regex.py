@@ -8,9 +8,22 @@ from scrapex.extractors import Extractor, register
 
 
 class RegexExtractor(Extractor):
+    """Regex-based extraction strategy. Fast, deterministic, free.
+
+    Best for unstructured text where the document has no useful DOM
+    structure (or you don't want to depend on one). HTML tags are
+    stripped before matching, so patterns can target plain text.
+    """
+
     name = "regex"
 
     async def extract(self, html: str, schema: Any) -> dict[str, Any]:
+        """Extract values from ``html`` for every field in ``schema``.
+
+        For each field, the first capture group is used if present,
+        otherwise the full match. Invalid regex patterns and non-matches
+        both yield ``None``.
+        """
         # Strip tags for plain-text matching
         text = re.sub(r"<[^>]+>", " ", html)
         text = re.sub(r"\s+", " ", text)

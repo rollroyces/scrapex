@@ -7,6 +7,7 @@ Covers:
 - LLM: markdown truncation, html truncation, missing schema fields
 - Registry: get/available roundtrip
 """
+
 from __future__ import annotations
 
 import pytest
@@ -19,10 +20,13 @@ from scrapex.extractors import get as get_extractor
 # ---------------------------------------------------------------------------
 # CSS extractor — all branches
 # ---------------------------------------------------------------------------
-@pytest.mark.parametrize("attr,expected", [
-    ("text", "Hello World"),
-    ("html", '<h1 class="title">Hello World</h1>'),  # BS4 preserves class attribute
-])
+@pytest.mark.parametrize(
+    "attr,expected",
+    [
+        ("text", "Hello World"),
+        ("html", '<h1 class="title">Hello World</h1>'),  # BS4 preserves class attribute
+    ],
+)
 async def test_css_attr_variants(attr, expected):
     schema = Schema(
         strategy=ExtractionStrategy.CSS,
@@ -46,7 +50,7 @@ async def test_css_attr_missing_returns_none():
         fields=[FieldSpec(name="h", selector="h1", attr="data-nope")],
     )
     out = await get_extractor("css").extract(
-        '<html><body><h1>Hello</h1></body></html>',
+        "<html><body><h1>Hello</h1></body></html>",
         schema,
     )
     assert out["h"] is None
@@ -71,7 +75,7 @@ async def test_css_invalid_selector_returns_none():
         fields=[FieldSpec(name="bad", selector="[[invalid")],
     )
     out = await get_extractor("css").extract(
-        '<html><body><p>hi</p></body></html>',
+        "<html><body><p>hi</p></body></html>",
         schema,
     )
     assert out["bad"] is None
@@ -88,7 +92,7 @@ async def test_css_multiple_fields_atomic():
         ],
     )
     out = await get_extractor("css").extract(
-        '<html><body><h1>title</h1><p>para</p></body></html>',
+        "<html><body><h1>title</h1><p>para</p></body></html>",
         schema,
     )
     assert out == {"a": "title", "b": "para", "c": None}
@@ -97,17 +101,20 @@ async def test_css_multiple_fields_atomic():
 # ---------------------------------------------------------------------------
 # XPath extractor — all branches
 # ---------------------------------------------------------------------------
-@pytest.mark.parametrize("attr,expected", [
-    ("text", "Hello World"),
-    ("html", "<h1>Hello World</h1>"),
-])
+@pytest.mark.parametrize(
+    "attr,expected",
+    [
+        ("text", "Hello World"),
+        ("html", "<h1>Hello World</h1>"),
+    ],
+)
 async def test_xpath_attr_variants(attr, expected):
     schema = Schema(
         strategy=ExtractionStrategy.XPATH,
         fields=[FieldSpec(name="h", selector="//h1", attr=attr)],
     )
     out = await get_extractor("xpath").extract(
-        '<html><body><h1>Hello World</h1></body></html>',
+        "<html><body><h1>Hello World</h1></body></html>",
         schema,
     )
     assert out["h"] == expected
@@ -131,7 +138,7 @@ async def test_xpath_attr_missing_returns_none():
         fields=[FieldSpec(name="h", selector="//h1", attr="data-missing")],
     )
     out = await get_extractor("xpath").extract(
-        '<html><body><h1>Hello</h1></body></html>',
+        "<html><body><h1>Hello</h1></body></html>",
         schema,
     )
     assert out["h"] is None
@@ -156,7 +163,7 @@ async def test_xpath_no_match_returns_none():
         fields=[FieldSpec(name="missing", selector="//nonexistent")],
     )
     out = await get_extractor("xpath").extract(
-        '<html><body><p>hi</p></body></html>',
+        "<html><body><p>hi</p></body></html>",
         schema,
     )
     assert out["missing"] is None

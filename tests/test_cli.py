@@ -1,4 +1,5 @@
 """Tests for the CLI module (python -m scrapex)."""
+
 from __future__ import annotations
 
 from unittest.mock import patch
@@ -119,7 +120,9 @@ def test_parse_schema_skips_invalid_specs():
 def test_main_with_url_only(capsys, respx_mock):
     """Minimal invocation: just a URL."""
     respx_mock.get(url__regex=r"^https://example\.com/?$").mock(
-        return_value=Response(200, text="<html><head><title>T</title></head><body><p>hi</p></body></html>")
+        return_value=Response(
+            200, text="<html><head><title>T</title></head><body><p>hi</p></body></html>"
+        )
     )
     rc = main(["https://example.com"])
     assert rc == 0
@@ -257,9 +260,17 @@ def test_main_with_llm_strategy_preset(capsys, monkeypatch, respx_mock):
     monkeypatch.setattr(
         LlmExtractor,
         "_ensure_litellm",
-        lambda self: setattr(self, "_litellm", type("F", (), {
-            "acompletion": staticmethod(fake_acompletion),
-        })()),
+        lambda self: setattr(
+            self,
+            "_litellm",
+            type(
+                "F",
+                (),
+                {
+                    "acompletion": staticmethod(fake_acompletion),
+                },
+            )(),
+        ),
     )
 
     rc = main(["https://example.com", "--preset", "deepseek-v3"])
@@ -295,20 +306,35 @@ def test_main_with_llm_strategy_and_custom_schema(capsys, monkeypatch, respx_moc
 
     from scrapex.extractors.llm import LlmExtractor
 
-    monkeypatch.setattr(
-        LlmExtractor,
-        "_ensure_litellm",
-        lambda self: setattr(self, "_litellm", type("F", (), {
-            "acompletion": staticmethod(fake_acompletion),
-        })()),
-    ),
+    (
+        monkeypatch.setattr(
+            LlmExtractor,
+            "_ensure_litellm",
+            lambda self: setattr(
+                self,
+                "_litellm",
+                type(
+                    "F",
+                    (),
+                    {
+                        "acompletion": staticmethod(fake_acompletion),
+                    },
+                )(),
+            ),
+        ),
+    )
 
-    rc = main([
-        "https://example.com",
-        "--strategy", "llm",
-        "--schema", "price:div.price",
-        "--description", "Numeric price",
-    ])
+    rc = main(
+        [
+            "https://example.com",
+            "--strategy",
+            "llm",
+            "--schema",
+            "price:div.price",
+            "--description",
+            "Numeric price",
+        ]
+    )
     assert rc == 0
     assert "price" in captured["messages"][0]["content"]
 

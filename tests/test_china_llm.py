@@ -7,6 +7,7 @@ These tests lock in:
 - Resolution behavior (preset name → litellm kwargs)
 - Error cases (unknown preset, missing API key)
 """
+
 from __future__ import annotations
 
 import pytest
@@ -32,21 +33,22 @@ def test_every_preset_has_litellm_model_string():
     """No preset may have an empty model string — would fail at litellm call time."""
     for p in china_llm.presets():
         assert p.model, f"{p.name} has empty model string"
-        assert "/" in p.model, (
-            f"{p.name} model {p.model!r} missing litellm provider prefix"
-        )
+        assert "/" in p.model, f"{p.name} model {p.model!r} missing litellm provider prefix"
 
 
 def test_every_preset_has_provider_in_supported_list():
     """Defends against typos in the provider field."""
     known_providers = {
-        "deepseek", "qwencloud", "dashscope", "qwen_ai_platform",
-        "zai", "moonshot", "volcengine",
+        "deepseek",
+        "qwencloud",
+        "dashscope",
+        "qwen_ai_platform",
+        "zai",
+        "moonshot",
+        "volcengine",
     }
     for p in china_llm.presets():
-        assert p.provider in known_providers, (
-            f"{p.name}: provider {p.provider!r} not in known list"
-        )
+        assert p.provider in known_providers, f"{p.name}: provider {p.provider!r} not in known list"
 
 
 @pytest.mark.parametrize(
@@ -244,22 +246,33 @@ async def test_scrape_with_china_preset_resolves_to_litellm(monkeypatch, respx_m
     # overwrite _litellm with the real litellm on first call, so we
     # monkeypatch the class method instead.
     from scrapex.extractors.llm import LlmExtractor
+
     monkeypatch.setattr(
         LlmExtractor,
         "_ensure_litellm",
-        lambda self: setattr(self, "_litellm", type("FakeLitellm", (), {
-            "acompletion": staticmethod(fake_acompletion),
-        })()),
+        lambda self: setattr(
+            self,
+            "_litellm",
+            type(
+                "FakeLitellm",
+                (),
+                {
+                    "acompletion": staticmethod(fake_acompletion),
+                },
+            )(),
+        ),
     )
 
-    await scrape(ScrapeRequest(
-        url="https://example.com",
-        schema=Schema(
-            strategy=ExtractionStrategy.LLM,
-            fields=[FieldSpec(name="title", description="page title")],
-        ),
-        llm_model="deepseek-v3",  # preset name, not raw litellm string
-    ))
+    await scrape(
+        ScrapeRequest(
+            url="https://example.com",
+            schema=Schema(
+                strategy=ExtractionStrategy.LLM,
+                fields=[FieldSpec(name="title", description="page title")],
+            ),
+            llm_model="deepseek-v3",  # preset name, not raw litellm string
+        )
+    )
 
     assert captured["model"] == "deepseek/deepseek-chat"
     assert captured["api_key"] == "env-deepseek-key"

@@ -1,4 +1,5 @@
 """LLM extractor test — mock litellm so we never hit a real provider."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, patch
@@ -59,20 +60,17 @@ async def test_llm_extractor_missing_dep_raises():
     """Without litellm installed, give a clear error."""
     extractor = LlmExtractor()
     extractor._litellm = None
-    with patch.dict("sys.modules", {"litellm": None}), pytest.raises(
-        ConfigurationError, match="llm"
+    with (
+        patch.dict("sys.modules", {"litellm": None}),
+        pytest.raises(ConfigurationError, match="llm"),
     ):
         extractor._ensure_litellm()
 
 
 async def test_llm_extractor_bad_json_raises():
-    schema = Schema(
-        strategy=ExtractionStrategy.LLM, fields=[FieldSpec(name="x", description="x")]
-    )
+    schema = Schema(strategy=ExtractionStrategy.LLM, fields=[FieldSpec(name="x", description="x")])
     mock_litellm = AsyncMock()
-    mock_litellm.acompletion = AsyncMock(
-        return_value=FakeResponse("not json at all")
-    )
+    mock_litellm.acompletion = AsyncMock(return_value=FakeResponse("not json at all"))
     extractor = LlmExtractor()
     extractor._litellm = mock_litellm
     from scrapex.errors import ExtractionError

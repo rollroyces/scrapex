@@ -10,6 +10,7 @@ Covers:
 - Empty content
 - Empty schema.fields (no extraction happens)
 """
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock
@@ -194,7 +195,7 @@ async def test_llm_with_empty_schema_fields():
 
     async def fake_acompletion(**kwargs):
         captured.update(kwargs)
-        return FakeResponse('{}')
+        return FakeResponse("{}")
 
     ext, _ = _make_extractor(fake_acompletion)
     schema = Schema(strategy=ExtractionStrategy.LLM, fields=[])
@@ -300,6 +301,7 @@ def test_llm_ensure_litellm_actually_imports_litellm():
 
 async def test_llm_handles_empty_response():
     """LLM returns empty string content → empty dict, no crash."""
+
     async def fake_acompletion(**kwargs):
         return FakeResponse("")
 

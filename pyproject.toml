@@ -68,9 +68,32 @@ packages = ["scrapex"]
 line-length = 100
 target-version = "py310"
 
+# Per-file overrides — tests don't need docstrings; their names ARE the docs.
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["D", "N"]
+"examples/**/*.py" = ["D"]
+
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "RUF"]
-ignore = ["E501"]  # line-length handled by formatter
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "RUF", "D"]
+# D = pydocstyle (PEP 257). We enforce the rules below; ignore the noisy ones
+# that don't matter for a small library (e.g. docstring-on-everything).
+ignore = [
+    "E501",  # line-length handled by formatter
+    "D100",  # missing module docstring (covered separately)
+    "D104",  # missing docstring in public package (covered separately)
+    "D107",  # missing docstring in __init__ (init docstrings are noise)
+    "D203",  # 1 blank line before class docstring (incompatible with D211)
+    "D213",  # multi-line summary on second line (incompatible with D212)
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"  # Google-style docstrings (PEP 257 compliant)
+
+[tool.ruff.format]
+# Use double quotes for strings (consistent with existing code)
+quote-style = "double"
+# Indent with 4 spaces
+indent-style = "space"
 
 [tool.mypy]
 python_version = "3.10"

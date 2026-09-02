@@ -7,6 +7,7 @@ Hunt for the silent failures: code that returns plausible-looking output
 without raising when it should. Each probe either finds a real bug or
 is marked as a NON-bug (so we don't fix what isn't broken).
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -145,6 +146,7 @@ def test_chunk_huge_overlap():
 # ---------------------------------------------------------------------------
 async def test_browser_without_playwright():
     from scrapex.fetchers import BrowserFetcher
+
     try:
         bf = BrowserFetcher()
         record("browser without playwright", NON_BUG, "playwright installed in env")
@@ -158,12 +160,8 @@ async def test_browser_without_playwright():
 # ---------------------------------------------------------------------------
 async def test_url_trailing_slash():
     with respx.mock:
-        respx.get("https://example.com/").mock(
-            return_value=httpx.Response(200, text="<p>x</p>")
-        )
-        respx.get("https://example.com").mock(
-            return_value=httpx.Response(200, text="<p>x</p>")
-        )
+        respx.get("https://example.com/").mock(return_value=httpx.Response(200, text="<p>x</p>"))
+        respx.get("https://example.com").mock(return_value=httpx.Response(200, text="<p>x</p>"))
         for u in ["https://example.com/", "https://example.com"]:
             try:
                 result = await scrape(ScrapeRequest(url=u))
@@ -177,8 +175,11 @@ async def test_url_trailing_slash():
 # ---------------------------------------------------------------------------
 def test_ssrf_guards():
     """v0.1 gap: trusts user input. SSRF is the caller's responsibility."""
-    record("SSRF guards", NON_BUG,
-           "v0.1: trusts user input; SSRF is caller's responsibility (documented gap)")
+    record(
+        "SSRF guards",
+        NON_BUG,
+        "v0.1: trusts user input; SSRF is caller's responsibility (documented gap)",
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -205,9 +206,8 @@ async def test_500_error():
         try:
             # Force HTTP mode so the auto-fallback doesn't try browser
             from scrapex.models import RenderMode
-            await scrape(
-                ScrapeRequest(url="https://example.com/boom", render=RenderMode.HTTP)
-            )
+
+            await scrape(ScrapeRequest(url="https://example.com/boom", render=RenderMode.HTTP))
             record("500 error (HTTP mode)", FAIL, "no error on 500")
         except FetchError as e:
             if e.status == 500:
@@ -229,13 +229,15 @@ async def test_required_present_no_warn():
                 text='<html><body><h1 class="t">Hello</h1></body></html>',
             )
         )
-        result = await scrape(ScrapeRequest(
-            url="https://example.com",
-            schema=Schema(
-                strategy=ExtractionStrategy.CSS,
-                fields=[FieldSpec(name="t", selector="h1.t", required=True)],
-            ),
-        ))
+        result = await scrape(
+            ScrapeRequest(
+                url="https://example.com",
+                schema=Schema(
+                    strategy=ExtractionStrategy.CSS,
+                    fields=[FieldSpec(name="t", selector="h1.t", required=True)],
+                ),
+            )
+        )
         warnings = [w for w in result.extraction_warnings if "required" in w.lower()]
         if warnings:
             record("required field present, no warning", FAIL, f"got warnings: {warnings}")
@@ -274,9 +276,7 @@ async def test_huge_html():
     big = "x" * 100_000
     html = f"<html><body><p>{big}</p></body></html>"
     with respx.mock:
-        respx.get(url="https://example.com/huge").mock(
-            return_value=httpx.Response(200, text=html)
-        )
+        respx.get(url="https://example.com/huge").mock(return_value=httpx.Response(200, text=html))
         try:
             result = await scrape(ScrapeRequest(url="https://example.com/huge"))
             if result.markdown is not None and len(result.markdown) > 0:
@@ -300,7 +300,8 @@ async def test_html_none_when_markdown():
             record("html=None when include_markdown=True", PASS, "as documented")
         else:
             record(
-                "html=None when include_markdown=True", FAIL,
+                "html=None when include_markdown=True",
+                FAIL,
                 f"html={r.html!r}, markdown={'set' if r.markdown else 'None'}",
             )
 

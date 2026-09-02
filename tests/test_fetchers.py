@@ -17,6 +17,7 @@ BrowserFetcher covers:
 - Construction with playwright installed (smoke only — no real browser)
 - aclose() before any fetch (no-op)
 """
+
 from __future__ import annotations
 
 import httpx
@@ -85,9 +86,7 @@ async def test_http_fetcher_extracts_title():
 
 async def test_http_fetcher_handles_missing_title():
     with respx.mock:
-        respx.get("https://example.com/").mock(
-            return_value=Response(200, text=NO_TITLE)
-        )
+        respx.get("https://example.com/").mock(return_value=Response(200, text=NO_TITLE))
         f = HttpFetcher()
         try:
             page = await f.fetch("https://example.com/", timeout_s=10, user_agent=None, proxy=None)
@@ -129,13 +128,13 @@ async def test_http_fetcher_handles_title_with_whitespace():
 # ---------------------------------------------------------------------------
 async def test_http_fetcher_404_raises_with_status():
     with respx.mock:
-        respx.get("https://example.com/missing").mock(
-            return_value=Response(404, text="Not Found")
-        )
+        respx.get("https://example.com/missing").mock(return_value=Response(404, text="Not Found"))
         f = HttpFetcher()
         try:
             with pytest.raises(FetchError) as exc_info:
-                await f.fetch("https://example.com/missing", timeout_s=10, user_agent=None, proxy=None)
+                await f.fetch(
+                    "https://example.com/missing", timeout_s=10, user_agent=None, proxy=None
+                )
         finally:
             await f.aclose()
     assert exc_info.value.status == 404
@@ -164,7 +163,9 @@ async def test_http_fetcher_403_raises_with_status():
         f = HttpFetcher()
         try:
             with pytest.raises(FetchError) as exc_info:
-                await f.fetch("https://example.com/forbidden", timeout_s=10, user_agent=None, proxy=None)
+                await f.fetch(
+                    "https://example.com/forbidden", timeout_s=10, user_agent=None, proxy=None
+                )
         finally:
             await f.aclose()
     assert exc_info.value.status == 403
@@ -173,9 +174,7 @@ async def test_http_fetcher_403_raises_with_status():
 async def test_http_fetcher_timeout_raises_no_status():
     """A timeout is a transport-level error — no HTTP status to report."""
     with respx.mock:
-        respx.get("https://example.com/slow").mock(
-            side_effect=httpx.ConnectTimeout("timed out")
-        )
+        respx.get("https://example.com/slow").mock(side_effect=httpx.ConnectTimeout("timed out"))
         f = HttpFetcher()
         try:
             with pytest.raises(FetchError) as exc_info:
@@ -189,13 +188,13 @@ async def test_http_fetcher_timeout_raises_no_status():
 async def test_http_fetcher_connection_error_raises_no_status():
     """Generic connection errors are FetchError with status=None."""
     with respx.mock:
-        respx.get("https://example.com/refused").mock(
-            side_effect=httpx.ConnectError("refused")
-        )
+        respx.get("https://example.com/refused").mock(side_effect=httpx.ConnectError("refused"))
         f = HttpFetcher()
         try:
             with pytest.raises(FetchError) as exc_info:
-                await f.fetch("https://example.com/refused", timeout_s=10, user_agent=None, proxy=None)
+                await f.fetch(
+                    "https://example.com/refused", timeout_s=10, user_agent=None, proxy=None
+                )
         finally:
             await f.aclose()
     assert exc_info.value.status is None

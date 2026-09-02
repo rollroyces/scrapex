@@ -3,6 +3,7 @@
 Lazy-imports ``litellm`` so users who never set ``strategy=llm`` don't pay
 the import cost. Falls back to a clear error if ``litellm`` isn't installed.
 """
+
 from __future__ import annotations
 
 import json
@@ -25,6 +26,16 @@ Page content:
 
 
 class LlmExtractor(Extractor):
+    """LLM-based extraction strategy. Flexible, costs tokens.
+
+    Best for pages where you don't know the structure ahead of time —
+    just describe what you want in natural language. Uses :mod:`litellm`
+    under the hood, so every provider litellm supports is supported here.
+
+    Costs: each call consumes tokens. For high-volume scraping, prefer
+    CSS/XPath/Regex when the structure is stable.
+    """
+
     name = "llm"
 
     def __init__(self) -> None:
@@ -32,6 +43,11 @@ class LlmExtractor(Extractor):
         self._litellm: Any = None
 
     def _ensure_litellm(self) -> None:
+        """Lazy-import :mod:`litellm` on first extract. Cached after.
+
+        Raises :class:`~scrapex.ConfigurationError` if litellm isn't
+        installed (caller didn't include the ``llm`` extra).
+        """
         if self._litellm is not None:
             return
         try:
@@ -53,6 +69,32 @@ class LlmExtractor(Extractor):
         markdown: str | None = None,
         api_base: str | None = None,
     ) -> dict[str, Any]:
+        """Extract values from ``html`` for every field in ``schema``.
+
+        Sends the (markdown-preferred, truncated) page content and the
+        schema to the LLM, asks for JSON-only output, and returns the
+        model's answer mapped to field names. Returns only the schema's
+        fields — anything else the model invented is dropped.
+
+        Parameters
+        ----------
+        llm_model:
+            The litellm model string (e.g. ``"gpt-4o-mini"``,
+            ``"deepseek/deepseek-chat"``).
+        llm_api_key, api_base:
+            Optional overrides; if not set, litellm falls through to its
+            own env-var discovery.
+        markdown:
+            Pre-cleaned markdown of the page. When provided, used in
+            preference to raw ``html``.
+
+        Raises:
+        ------
+        ConfigurationError:
+            If ``llm_model`` is missing or litellm isn't installed.
+        ExtractionError:
+            If the LLM call fails or returns non-JSON.
+        """
         self._ensure_litellm()
         if not llm_model:
             raise ConfigurationError("LLM strategy requires llm_model to be set")
@@ -103,4 +145,5 @@ register(_llm_instance)
 
 
 def get_llm_extractor() -> LlmExtractor:
+    """Return the process-wide singleton LlmExtractor instance."""
     return _llm_instance

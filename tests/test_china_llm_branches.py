@@ -1,4 +1,5 @@
 """Tests for the helpers in scrapex.china_llm (every shortcut function)."""
+
 from __future__ import annotations
 
 import pytest

@@ -5,6 +5,7 @@ Two implementations: :class:`HttpFetcher` (httpx, fast) and
 helper picks one based on the request's :class:`RenderMode` and the page
 content.
 """
+
 from __future__ import annotations
 
 import abc
@@ -33,9 +34,27 @@ class Fetcher(abc.ABC):
     @abc.abstractmethod
     async def fetch(
         self, url: str, *, timeout_s: float, user_agent: str | None, proxy: str | None
-    ) -> FetchedPage: ...
+    ) -> FetchedPage:
+        """Fetch ``url`` and return the raw page. Implementations must be safe to call multiple times.
+
+        Parameters
+        ----------
+        url:
+            The URL to fetch.
+        timeout_s:
+            Timeout in seconds for the fetch.
+        user_agent:
+            Optional override for the User-Agent header.
+        proxy:
+            Optional proxy URL (e.g. ``http://proxy:8080``).
+        """
+        ...
 
     async def aclose(self) -> None:
+        """Release any resources held by the fetcher (e.g. browser process).
+
+        Default implementation is a no-op for stateless fetchers.
+        """
         return None
 
 
@@ -69,6 +88,12 @@ class HttpFetcher(Fetcher):
         user_agent: str | None,
         proxy: str | None,
     ) -> FetchedPage:
+        """Fetch the page over HTTP using httpx + HTTP/2.
+
+        Returns a :class:`FetchedPage` on success. Raises
+        :class:`~scrapex.FetchError` on any HTTP 4xx/5xx response or
+        transport-level failure (DNS, TLS, timeout, connection refused).
+        """
         headers: dict[str, str] = {}
         if user_agent:
             headers["User-Agent"] = user_agent
@@ -91,6 +116,7 @@ class HttpFetcher(Fetcher):
         )
 
     async def aclose(self) -> None:
+        """Close the underlying httpx client and release its connection pool."""
         await self._client.aclose()
 
 
@@ -135,6 +161,16 @@ class BrowserFetcher(Fetcher):
         user_agent: str | None,
         proxy: str | None,
     ) -> FetchedPage:
+        """Fetch the page using a real browser (Playwright + Chromium).
+
+        Launches Chromium on first use; reuses it for subsequent fetches
+        in the same instance. Use this when the page needs JavaScript
+        execution to render content.
+
+        Returns a :class:`FetchedPage` on success. Raises
+        :class:`~scrapex.FetchError` on HTTP 4xx/5xx (from the final
+        response) or :class:`~scrapex.RenderError` on browser crashes.
+        """
         await self._ensure_browser(proxy)
         assert self._browser is not None
         ctx = await self._browser.new_context(
@@ -162,6 +198,11 @@ class BrowserFetcher(Fetcher):
         )
 
     async def aclose(self) -> None:
+        """Close the Chromium browser and stop the Playwright driver.
+
+        Safe to call even if no fetch was ever attempted (both handles
+        stay ``None`` in that case).
+        """
         if self._browser is not None:
             await self._browser.close()
         if self._playwright is not None:

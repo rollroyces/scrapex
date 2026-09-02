@@ -4,6 +4,7 @@ Everything you pass into :func:`scrapex.scrape` and everything you get back
 is one of the types defined here. Keeping these models stable is the API
 contract; internal modules are not.
 """
+
 from __future__ import annotations
 
 from enum import Enum
@@ -54,7 +55,7 @@ class FieldSpec(BaseModel):
 class Schema(BaseModel):
     """The shape you want back from a scrape.
 
-    Examples
+    Examples:
     --------
     CSS strategy::
 

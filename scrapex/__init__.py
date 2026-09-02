@@ -6,6 +6,7 @@ Public API surface (the only things intended to be imported by users):
 
 The rest of the package is implementation detail.
 """
+
 from __future__ import annotations
 
 from scrapex import china_llm as china
