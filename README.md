@@ -26,6 +26,41 @@ async def main():
 asyncio.run(main())
 ```
 
+## Try it in 10 seconds — `python -m scrapex`
+
+The fastest way to see what scrapex does:
+
+```bash
+# Just get clean markdown (no schema needed)
+python -m scrapex https://example.com
+
+# CSS extraction with a one-liner schema
+python -m scrapex https://shop.example.com/widget \
+    --schema "title:h1.product-name,price:span.price:data-amount"
+
+# LLM extraction with a China preset (DeepSeek key auto-discovered)
+DEEPSEEK_API_KEY=sk-... \
+    python -m scrapex https://news.example.com/article \
+    --preset deepseek-v3 --region cn
+
+# Browser-mode for JS-only pages
+python -m scrapex https://spa.example.com --render browser
+```
+
+Output is a Rich-formatted panel with status, extracted fields, warnings,
+and a markdown preview. Failures show a red panel with the error and a
+**hint** suggesting what to try next:
+
+```
+╭─────────────────────────────────── Error ────────────────────────────────────╮
+│ [https://x.com/missing] HTTP 404                                              │
+│                                                                              │
+│ hint: Page not found. If the site is JS-rendered, try render=browser.         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+```
+
+Set `SCRAPEX_DEBUG=1` to get a full traceback alongside the error panel.
+
 ## Why scrapex?
 
 Most scraping libraries either:
@@ -65,10 +100,11 @@ playwright install chromium            # one-time browser download
 scrapex/
 ├── scrape.py            ← main entry: async scrape() orchestrator
 ├── models.py            ← Pydantic: ScrapeRequest, ScrapeResult, Schema, FieldSpec
-├── errors.py            ← typed exceptions
+├── errors.py            ← typed exceptions with status-aware hints
 ├── fetchers/            ← HTTP (httpx) + Browser (Playwright)
 ├── processing/          ← HTML → Markdown → chunks
-└── extractors/          ← CSS / XPath / Regex / LLM (swappable via protocol)
+├── extractors/          ← CSS / XPath / Regex / LLM (swappable via protocol)
+├── __main__.py          ← `python -m scrapex <url>` interactive CLI (Rich)
 └── china_llm.py         ← Curated presets for China-hosted LLM providers
 ```
 
