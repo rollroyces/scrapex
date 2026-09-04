@@ -320,6 +320,64 @@ Hints can be overridden per-instance: `FetchError(url, msg, status=404, hint="my
 
 ---
 
+## Optional contrib modules
+
+scrapex ships two **opt-in** helpers under `scrapex.contrib.*`. They are
+explicitly named to make the "this is community-grade, audit before
+using" contract obvious. Read the source before putting them in
+production.
+
+### `scrapex.contrib.sessions` — persistent cookies across calls
+
+```python
+import asyncio
+from scrapex import ScrapeRequest, Schema, FieldSpec, ExtractionStrategy
+from scrapex.contrib.sessions import Session
+
+async def main():
+    async with Session() as s:
+        # 1. Login once — server sets cookies that go into the session jar
+        await s.scrape("https://example.com/login")
+        # 2. All subsequent scrape() calls reuse the same cookies
+        result = await s.scrape(ScrapeRequest(
+            url="https://example.com/dashboard",
+            schema=Schema(
+                strategy=ExtractionStrategy.CSS,
+                fields=[FieldSpec(name="title", selector="h1")],
+            ),
+        ))
+        print(result.extracted, s.list())  # value-free cookie snapshot
+```
+
+**Security baseline:** cookies are never logged. Setting a cookie with a
+sensitive name (`session`, `auth`, `token`, `csrf`, `xsrf`, `sid`,
+`password`, `secret`, `api_key`) without `sensitive=True` emits a
+`UserWarning` — the value is never included in the warning text.
+
+### `scrapex.contrib.captcha` — human-in-the-loop CAPTCHA pause
+
+scrapex does **not** ship a CAPTCHA solver. The only honest pattern is
+human-in-the-loop: pause, take a screenshot, wait for a human to solve
+it, then resume.
+
+```python
+from scrapex.contrib.captcha import solve_captcha_human_in_loop
+
+# page is a live Playwright Page that hit a CAPTCHA
+solved = await solve_captcha_human_in_loop(page, timeout_s=120)
+if solved:
+    # challenge is gone — continue scraping
+    ...
+```
+
+Returns `True` if the challenge element disappeared before the timeout
+(default 120s), `False` otherwise. Saves a screenshot to
+`captcha-challenge.png` by default so the operator can see the challenge.
+
+We do **not** ship a 2captcha / anti-captcha.com wrapper. Their ToS
+explicitly forbid automated bypass; a library shipping such a wrapper
+would push legal/ToS risk onto every user.
+
 ## Architecture
 
 ```
@@ -330,6 +388,9 @@ scrapex/
 ├── fetchers/            HTTP (httpx) + Browser (Playwright)
 ├── processing/          HTML → Markdown → chunks (RAG-friendly)
 ├── extractors/          CSS / XPath / Regex / LLM (swappable via protocol)
+├── contrib/             opt-in helpers (read source before using)
+│   ├── captcha.py       human-in-the-loop CAPTCHA pause/resume
+│   └── sessions.py      cookie-jar session that persists across scrape() calls
 ├── __main__.py          python -m scrapex — interactive CLI (Rich)
 └── china_llm.py         12 curated presets for China-hosted LLM providers
 ```
