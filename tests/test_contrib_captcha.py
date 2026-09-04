@@ -4,6 +4,7 @@ We use a fake Page object (not a real browser) to keep tests fast
 and deterministic. The contract under test is: screenshot is taken,
 selector is polled, returns True when the challenge disappears.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -156,6 +157,7 @@ async def test_captcha_polls_with_configured_interval():
     """Verify the poll interval is respected (within reason)."""
     page = FakePage(challenge_count=5)  # never disappears
     import time
+
     t0 = time.monotonic()
     ok = await solve_captcha_human_in_loop(
         page, screenshot_path="/tmp/nope.png", timeout_s=0.5, poll_interval_s=0.1

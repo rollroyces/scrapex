@@ -1,4 +1,5 @@
 """Regex extractor — for unstructured text where patterns suffice."""
+
 from __future__ import annotations
 
 import re

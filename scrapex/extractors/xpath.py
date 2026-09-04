@@ -1,4 +1,5 @@
 """XPath extractor — same trade-offs as CSS, more flexible for nested cases."""
+
 from __future__ import annotations
 
 from typing import Any

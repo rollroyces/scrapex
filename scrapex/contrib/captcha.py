@@ -16,6 +16,7 @@ What scrapex does NOT do (intentionally):
 - Hide the challenge. The user always knows when a CAPTCHA is being
   paused for. There is no silent "we just handle it" mode.
 """
+
 from __future__ import annotations
 
 import asyncio

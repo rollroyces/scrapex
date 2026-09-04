@@ -1,4 +1,5 @@
 """CSS-selector extractor — deterministic, no LLM, fast."""
+
 from __future__ import annotations
 
 from typing import Any

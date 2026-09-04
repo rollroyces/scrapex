@@ -105,8 +105,7 @@ class LlmExtractor(Extractor):
         schema_json = json.dumps(
             {
                 "fields": [
-                    {"name": f.name, "description": f.description or f.name}
-                    for f in schema.fields
+                    {"name": f.name, "description": f.description or f.name} for f in schema.fields
                 ]
             },
             indent=2,

@@ -9,6 +9,7 @@ This package contains features that:
 If you find yourself reaching for a contrib module in production, read
 its source first.
 """
+
 from __future__ import annotations
 
 from scrapex.contrib import captcha, sessions

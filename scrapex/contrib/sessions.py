@@ -22,6 +22,7 @@ What is intentionally NOT here:
   don't lie about what ``repr(session.cookies)`` shows.
 - No browser-side cookies. Playwright owns its own cookie context.
 """
+
 from __future__ import annotations
 
 import re
@@ -161,8 +162,7 @@ class Session:
         if _is_sensitive(name) and not sensitive:
             warnings.warn(
                 "setting a cookie whose name looks sensitive; if this is "
-                "intentional, pass sensitive=True. "
-                + (_COOKIE_NAME_ONLY_FMT % (name, True)),
+                "intentional, pass sensitive=True. " + (_COOKIE_NAME_ONLY_FMT % (name, True)),
                 UserWarning,
                 stacklevel=2,
             )
@@ -183,11 +183,7 @@ class Session:
             d = c.domain.lstrip(".") or ""
             if domain is not None and d != domain.lstrip("."):
                 continue
-            out.append(
-                _CookieView(
-                    name=c.name, domain=d, path=c.path, expires=c.expires
-                )
-            )
+            out.append(_CookieView(name=c.name, domain=d, path=c.path, expires=c.expires))
         return out
 
     async def scrape(self, request: ScrapeRequest | dict[str, Any] | str) -> ScrapeResult:
@@ -241,9 +237,7 @@ class Session:
         return await _extract_only(resp.text, req, str(resp.url), resp.status_code)
 
 
-async def _extract_only(
-    html: str, req: ScrapeRequest, final_url: str, status: int
-) -> ScrapeResult:
+async def _extract_only(html: str, req: ScrapeRequest, final_url: str, status: int) -> ScrapeResult:
     """Run scrapex's extraction stage on already-fetched HTML.
 
     Extracted to avoid duplicating the orchestrator's logic. The behavior
@@ -251,11 +245,7 @@ async def _extract_only(
     the fetch step (already done) and the LLM branch (not exercised
     here — Session is a contrib addition; LLM extraction is core's job).
     """
-    md = (
-        html_to_markdown(html, max_chars=req.markdown_max_chars)
-        if req.include_markdown
-        else None
-    )
+    md = html_to_markdown(html, max_chars=req.markdown_max_chars) if req.include_markdown else None
     extracted: dict[str, Any] = {}
     warnings_: list[str] = []
     if req.schema_ is not None:

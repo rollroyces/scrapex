@@ -12,6 +12,7 @@ Covers:
 - Async context manager
 - aclose() is idempotent
 """
+
 from __future__ import annotations
 
 import json
@@ -44,16 +45,14 @@ async def _echo_cookies(req: web.Request) -> web.Response:
 
 async def _page_a(_req: web.Request) -> web.Response:
     return web.Response(
-        text="<html><head><title>Page A</title></head>"
-        "<body><h1 class='t'>A</h1></body></html>",
+        text="<html><head><title>Page A</title></head><body><h1 class='t'>A</h1></body></html>",
         content_type="text/html",
     )
 
 
 async def _page_b(_req: web.Request) -> web.Response:
     return web.Response(
-        text="<html><head><title>Page B</title></head>"
-        "<body><h1 class='t'>B</h1></body></html>",
+        text="<html><head><title>Page B</title></head><body><h1 class='t'>B</h1></body></html>",
         content_type="text/html",
     )
 
@@ -93,20 +92,24 @@ async def test_session_persists_cookies_across_5_calls():
 
             # 2-4. Three more pages, each extraction works
             for path, want in [("/a", "A"), ("/b", "B")]:
-                r = await session.scrape(ScrapeRequest(
-                    url=f"{base}{path}",
-                    schema=Schema(
-                        strategy=ExtractionStrategy.CSS,
-                        fields=[FieldSpec(name="title", selector="h1.t")],
-                    ),
-                ))
+                r = await session.scrape(
+                    ScrapeRequest(
+                        url=f"{base}{path}",
+                        schema=Schema(
+                            strategy=ExtractionStrategy.CSS,
+                            fields=[FieldSpec(name="title", selector="h1.t")],
+                        ),
+                    )
+                )
                 assert r.extracted["title"] == want
 
             # 5. Verify cookies survived (the point of Session)
-            r = await session.scrape(ScrapeRequest(
-                url=f"{base}/whoami",
-                include_markdown=False,
-            ))
+            r = await session.scrape(
+                ScrapeRequest(
+                    url=f"{base}/whoami",
+                    include_markdown=False,
+                )
+            )
             echoed = json.loads(r.html or "{}")
             for name in ("session", "csrf", "tracking"):
                 assert name in echoed, f"cookie {name!r} missing from /whoami"
@@ -148,9 +151,7 @@ async def test_session_sensitive_name_guard_fires_warning():
         )
         # The value MUST NOT appear in any warning message
         for m in msgs:
-            assert "leaked-value-12345" not in m, (
-                f"cookie value leaked into warning: {m!r}"
-            )
+            assert "leaked-value-12345" not in m, f"cookie value leaked into warning: {m!r}"
 
 
 async def test_session_sensitive_name_with_sensitive_true_suppresses():
@@ -159,9 +160,9 @@ async def test_session_sensitive_name_with_sensitive_true_suppresses():
             warnings.simplefilter("always")
             session.set("auth_token", "real-token", sensitive=True)
         sensitive_warnings = [
-            w for w in caught
-            if "sensitive" in str(w.message).lower()
-            and "auth_token" in str(w.message).lower()
+            w
+            for w in caught
+            if "sensitive" in str(w.message).lower() and "auth_token" in str(w.message).lower()
         ]
         assert sensitive_warnings == [], (
             f"expected no sensitive warning when sensitive=True; got: "
@@ -179,9 +180,7 @@ async def test_session_clear_wipes_the_jar():
             session.clear()
             assert len(session.cookies) == 0
             # /whoami should now see no cookies
-            r = await session.scrape(ScrapeRequest(
-                url=f"{base}/whoami", include_markdown=False
-            ))
+            r = await session.scrape(ScrapeRequest(url=f"{base}/whoami", include_markdown=False))
             echoed = json.loads(r.html or "{}")
             assert echoed == {}, f"cookies survived clear(): {echoed!r}"
     finally:
@@ -252,13 +251,15 @@ async def test_session_llm_strategy_emits_clear_warning():
             return_value=Response(200, text="<p>x</p>")
         )
         async with Session() as session:
-            r = await session.scrape(ScrapeRequest(
-                url="https://example.com",
-                schema=Schema(
-                    strategy=ExtractionStrategy.LLM,
-                    fields=[FieldSpec(name="title", description="title")],
-                ),
-            ))
+            r = await session.scrape(
+                ScrapeRequest(
+                    url="https://example.com",
+                    schema=Schema(
+                        strategy=ExtractionStrategy.LLM,
+                        fields=[FieldSpec(name="title", description="title")],
+                    ),
+                )
+            )
             assert r.extracted == {"title": None}
             assert any("LLM" in w for w in r.extraction_warnings)
 

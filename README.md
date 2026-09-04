@@ -320,6 +320,65 @@ Hints can be overridden per-instance: `FetchError(url, msg, status=404, hint="my
 
 ---
 
+## AI-synthesized schemas (Schema.from_goal)
+
+The only "AI magic" in scrapex. Describe what you want in one sentence
+and an LLM produces the schema for you:
+
+```python
+from scrapex import Schema, ScrapeRequest, scrape
+
+schema = Schema.from_goal(
+    "extract the report title, price, and PDF download link",
+    html=html,
+)
+result = await scrape(ScrapeRequest(url=..., schema=schema))
+
+# The schema is just a normal Schema object — explain() shows why
+# the LLM picked each selector (audit it before relying on it):
+for line in schema.explain():
+    print(line)
+# title: h1.report-title is the only h1 with class="report-title"
+# price: span.price was the only element matching the price pattern
+# link: a.download was the anchor with download attr
+```
+
+**How it picks the LLM.** Order:
+
+1. `OLLAMA_HOST` set (or Ollama running locally) → `ollama/qwen2.5:1.5b`
+   (free, runs on your laptop, no API key).
+2. `OPENAI_API_KEY` set → `gpt-4o-mini`.
+3. Neither → `ConfigurationError` with install hint.
+
+Pass `llm_model="..."` to override.
+
+**Install the optional extra first:**
+
+```bash
+pip install scrapex[llm]
+```
+
+**Design guarantees (read these before relying on it):**
+
+- **Opt-in only.** `Schema(strategy=..., fields=...)` still works
+  without touching an LLM. Zero LLM cost on the default path.
+- **Lenient.** Never raises on empty extraction. The user gets a
+  working Schema back even if the LLM hallucinated; the warning is
+  in `UserWarning` and in `schema.explain()`.
+- **Transparent.** `schema.explain()` returns one line per field
+  explaining why the LLM picked that selector. The user owns the
+  schema after `from_goal()` returns.
+- **Cached.** Identical `(html, goal, model)` pairs return cached
+  results within the process.
+
+**What it's NOT:**
+
+- Not a replacement for hand-written schemas on critical pages.
+- Not a competitor to scrapegraph-ai (which runs the full LLM
+  pipeline). We just synthesize a Schema and stop.
+- Not magic. Sometimes the LLM picks a bad selector. Always review
+  the result before relying on it in production.
+
 ## Optional contrib modules
 
 scrapex ships two **opt-in** helpers under `scrapex.contrib.*`. They are
@@ -385,9 +444,11 @@ scrapex/
 ├── scrape.py            async scrape() orchestrator
 ├── models.py            Pydantic: ScrapeRequest, ScrapeResult, Schema, FieldSpec
 ├── errors.py            typed exceptions with status-aware hints
+├── schema_synth.py      Schema.from_goal() — LLM synthesizes a schema from a goal
 ├── fetchers/            HTTP (httpx) + Browser (Playwright)
 ├── processing/          HTML → Markdown → chunks (RAG-friendly)
 ├── extractors/          CSS / XPath / Regex / LLM (swappable via protocol)
+├── china_llm.py         China-region LLM presets (DeepSeek / Qwen / GLM / ...)
 ├── contrib/             opt-in helpers (read source before using)
 │   ├── captcha.py       human-in-the-loop CAPTCHA pause/resume
 │   └── sessions.py      cookie-jar session that persists across scrape() calls
