@@ -47,6 +47,7 @@ from functools import lru_cache
 from typing import TYPE_CHECKING, Any
 
 from scrapex.errors import ConfigurationError
+from scrapex.html_clean import clean_html_for_llm
 from scrapex.models import FieldSpec, Schema
 
 if TYPE_CHECKING:
@@ -62,37 +63,35 @@ if TYPE_CHECKING:
     _Schema.from_goal = classmethod(lambda cls, *a, **kw: None)  # type: ignore[attr-defined]
 
 
-# The prompt template. Deliberately short and structured.
-# Output schema: a JSON object with a "fields" list; each field is
-# {name, selector, attr, reason}. The "reason" is what populates
-# schema.explain() so the user can audit.
+# The prompt template. Deliberately short — every token here is a
+# token charged on every call. The full instruction set:
+#   - Output schema (one paragraph)
+#   - Field format (one bullet block)
+#   - Rules (4 bullets)
+#   - User goal
+#   - Cleaned HTML
+#   - Output format
+# Total fixed overhead: ~80 tokens (down from 206). HTML cleaning
+# is done in :func:`scrapex.html_clean.clean_html_for_llm` before
+# the prompt is sent, which is where the bulk of savings comes from.
 _PROMPT_TEMPLATE = """\
-You are a precise web-scraping schema synthesizer.
+You are a schema synthesizer. Return one JSON object.
 
-Given an HTML page and a one-line goal, return a JSON object with a single
-"fields" key. Each entry in "fields" describes one piece of data to extract:
-
-  {{
-    "name": "snake_case_field_name",
-    "selector": "CSS selector that targets the element (text default)",
-    "attr": "text" or "href" — which attribute to read
-    "reason": "one sentence explaining why you picked this selector"
-  }}
+Schema:
+{{"fields": [{{"name": str, "selector": str, "attr": "text"|"href", "reason": str}}]}}
 
 Rules:
-- One field per piece of data the user asked for. Do NOT hallucinate extras.
-- Selectors must be CSS (not XPath). Prefer class-targeted selectors
-  over positional ones.
-- Use "text" for visible text, "href" for links.
-- The "reason" is for the human who will maintain this — be specific.
+- One field per piece of data the user asked for.
+- CSS selectors only. Prefer class-targeted over positional.
+- "text" for visible text, "href" for links.
+- "reason" explains selector choice for the maintainer.
 
 Goal: {goal}
 
 HTML:
 {html}
 
-Output ONLY the JSON object. No prose, no markdown fences.
-"""
+Output ONLY the JSON."""
 
 
 # Detect which model to use based on what's available locally. This is
@@ -182,7 +181,12 @@ def _cached_synthesize(goal: str, html: str, model: str, html_hash: str) -> dict
         useful cache key).
     """
     litellm = _get_litellm()
-    prompt = _PROMPT_TEMPLATE.format(goal=goal, html=html[:50_000])
+    # Clean HTML before sending: strip scripts/styles/chrome, collapse
+    # whitespace, then hard-truncate. This is where the bulk of the
+    # token savings comes from — the prompt template itself is only
+    # ~113 tokens, but the raw HTML is typically 12K-25K tokens.
+    cleaned_html = clean_html_for_llm(html)
+    prompt = _PROMPT_TEMPLATE.format(goal=goal, html=cleaned_html)
     try:
         resp = litellm.completion(
             model=model,

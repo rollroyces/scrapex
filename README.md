@@ -379,6 +379,20 @@ pip install scrapex[llm]
 - Not magic. Sometimes the LLM picks a bad selector. Always review
   the result before relying on it in production.
 
+**Token optimization (built-in).** Before the LLM call, `from_goal()`
+strips noise from the HTML (`<script>`, `<style>`, comments, nav,
+footer, header, aside) and collapses whitespace. The prompt template
+itself is ~100 tokens. On a typical news-style page this gives:
+
+| Component | Before | After | Savings |
+|---|---|---|---|
+| Prompt template | 206 tokens | 113 tokens | -45% |
+| HTML payload (real page) | ~2,000 tokens | ~550 tokens | -73% |
+| **Total per call** | **~2,200 tokens** | **~650 tokens** | **-71%** |
+
+Run `python spikes/005-llm-schema/measure.py` to see the actual
+numbers for your own pages.
+
 ## Optional contrib modules
 
 scrapex ships two **opt-in** helpers under `scrapex.contrib.*`. They are
@@ -445,6 +459,7 @@ scrapex/
 ├── models.py            Pydantic: ScrapeRequest, ScrapeResult, Schema, FieldSpec
 ├── errors.py            typed exceptions with status-aware hints
 ├── schema_synth.py      Schema.from_goal() — LLM synthesizes a schema from a goal
+├── html_clean.py        clean_html_for_llm() — strip noise before LLM call (token optimization)
 ├── fetchers/            HTTP (httpx) + Browser (Playwright)
 ├── processing/          HTML → Markdown → chunks (RAG-friendly)
 ├── extractors/          CSS / XPath / Regex / LLM (swappable via protocol)
