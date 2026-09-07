@@ -126,7 +126,9 @@ async def scrape(request: ScrapeRequest | dict[str, Any] | str) -> ScrapeResult:
     mode_value = req.render.value if isinstance(req.render, RenderMode) else str(req.render)
     primary_mode = "http" if mode_value == "auto" else mode_value
 
-    fetcher = await choose_fetcher(primary_mode, proxy=req.proxy)
+    fetcher = await choose_fetcher(
+        primary_mode, proxy=req.proxy, stealth=req.stealth
+    )
     try:
         page = await _fetch_with_retry(fetcher, req, render_mode=primary_mode)
     except FetchError as first_err:

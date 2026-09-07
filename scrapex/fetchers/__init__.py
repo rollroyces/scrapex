@@ -219,10 +219,38 @@ def _quick_title(html: str) -> str | None:
     return m.group(1).strip()[:500]
 
 
-async def choose_fetcher(mode: str, *, proxy: str | None = None) -> Fetcher:
-    """Pick a fetcher based on the request's :class:`RenderMode`."""
+async def choose_fetcher(
+    mode: str, *, proxy: str | None = None, stealth: bool = False
+) -> Fetcher:
+    """Pick a fetcher based on the request's :class:`RenderMode`.
+
+    Parameters
+    ----------
+    mode:
+        ``"http"`` for plain HTTP, ``"browser"`` for JS-rendered.
+    proxy:
+        Optional proxy URL (only used for ``HttpFetcher`` and
+        ``BrowserFetcher``; ``CloudscraperFetcher`` configures its
+        proxy at construction time).
+    stealth:
+        If True and mode is ``"http"``, return a
+        :class:`~scrapex.fetchers.cloudscraper_fetcher.CloudscraperFetcher`
+        instead of the plain httpx one. Requires
+        ``pip install scrapex[stealth]``. Useful for Cloudflare-
+        protected pages where httpx gets blocked by the challenge
+        interstitial.
+
+    Raises:
+    ------
+    RenderError:
+        If ``stealth=True`` and cloudscraper is not installed.
+    """
     if mode == "browser":
         return BrowserFetcher()
+    if stealth:
+        from scrapex.fetchers.cloudscraper_fetcher import CloudscraperFetcher
+
+        return CloudscraperFetcher(proxy=proxy)
     return HttpFetcher(proxy=proxy)
 
 

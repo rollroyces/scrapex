@@ -539,7 +539,7 @@ async def test_scrape_auto_5xx_triggers_browser_fallback(monkeypatch, respx_mock
 
     fake_browser = FakeBrowser()
 
-    async def selective_choose(mode, *, proxy=None):
+    async def selective_choose(mode, *, proxy=None, stealth=False):
         if mode == "browser":
             return fake_browser
         return Http503Fetcher()
@@ -632,7 +632,7 @@ async def test_scrape_auto_404_does_not_trigger_browser(monkeypatch, respx_mock)
 
     mode_calls = []
 
-    async def selective_choose(mode, *, proxy=None):
+    async def selective_choose(mode, *, proxy=None, stealth=False):
         mode_calls.append(mode)
         if mode == "browser":
             return fake_choose(mode, proxy=proxy)  # tracked
@@ -674,8 +674,9 @@ async def test_scrape_passes_proxy_to_fetcher(monkeypatch, respx_mock):
         async def aclose(self):
             pass
 
-    async def fake_choose(mode, *, proxy=None):
+    async def fake_choose(mode, *, proxy=None, stealth=False):
         captured_kwargs["proxy"] = proxy
+        captured_kwargs["stealth"] = stealth
         return FakeFetcher()
 
     _patch_choose_fetcher(monkeypatch, fake_choose)

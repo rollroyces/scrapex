@@ -100,6 +100,11 @@ class ScrapeRequest(BaseModel):
     url: HttpUrl
     schema_: Schema | None = Field(default=None, alias="schema")
     render: RenderMode = RenderMode.AUTO
+    # Use cloudscraper to bypass Cloudflare anti-bot challenges.
+    # Requires ``pip install scrapex[stealth]``. Ignored if
+    # render == RenderMode.BROWSER (Playwright handles its own
+    # anti-bot).
+    stealth: bool = False
     timeout_s: float = Field(default=30.0, gt=0, le=300)
     user_agent: str | None = None
     proxy: str | None = None

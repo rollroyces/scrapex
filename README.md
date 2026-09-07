@@ -379,6 +379,41 @@ pip install scrapex[llm]
 - Not magic. Sometimes the LLM picks a bad selector. Always review
   the result before relying on it in production.
 
+## Cloudflare / anti-bot bypass
+
+For pages protected by Cloudflare's anti-bot challenge (the
+"Just a moment..." interstitial), scrapex can use cloudscraper
+to solve the JS challenge without launching a full browser:
+
+```bash
+pip install scrapex[stealth]
+```
+
+```python
+from scrapex import ScrapeRequest, scrape
+
+result = await scrape(ScrapeRequest(
+    url="https://example.com/",
+    stealth=True,  # use cloudscraper instead of httpx
+))
+```
+
+**Trade-offs:**
+- ~5-10ms slower per call (sync→thread dispatch)
+- Cannot solve JS-rendered pages (use `render=RenderMode.BROWSER` instead)
+- For Cloudflare v3 / Turnstile challenges, cloudscraper needs the
+  `js2py` interpreter (pure Python, default) or `nodejs` for speed
+
+**When to use:**
+- HTTP fetcher returns 403 with "Just a moment..." in the body
+- The site is Cloudflare-protected but not JS-heavy
+- You want Cloudflare bypass without Playwright's ~8s startup cost
+
+**When NOT to use:**
+- Page needs full JS execution (use `render=RenderMode.BROWSER`)
+- Cloudflare interstitial is just the first page (Playwright is
+  better at follow-on JS-heavy flows)
+
 ## Speculative features (use with care)
 
 These modules are shipped but **explicitly speculative** — built before
@@ -477,7 +512,7 @@ scrapex/
 ├── errors.py            typed exceptions with status-aware hints
 ├── schema_synth.py      Schema.from_goal() — LLM synthesizes a schema from a goal
 ├── html_clean.py        clean_html_for_llm() — strip noise before LLM call (token optimization)
-├── fetchers/            HTTP (httpx) + Browser (Playwright)
+├── fetchers/            HTTP (httpx) + Browser (Playwright) + Cloudflare (cloudscraper)
 ├── processing/          HTML → Markdown → chunks (RAG-friendly)
 ├── extractors/          CSS / XPath / Regex / LLM (swappable via protocol)
 ├── china_llm.py         China-region LLM presets (DeepSeek / Qwen / GLM / ...)
