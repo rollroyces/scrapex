@@ -1,0 +1,57 @@
+{
+  "name": "scrapex",
+  "type": "n8n-nodes-base.httpRequest",
+  "typeVersion": 4.1,
+  "position": [250, 300],
+  "parameters": {
+    "method": "POST",
+    "url": "http://localhost:8000/scrape",
+    "sendHeaders": true,
+    "headerParameters": {
+      "parameters": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    "sendBody": true,
+    "bodyParameters": {
+      "parameters": [
+        {
+          "name": "url",
+          "value": "={{$json.url}}",
+          "description": "URL to scrape (use an upstream node's {{$json.url}} or hardcode)"
+        },
+        {
+          "name": "render",
+          "value": "auto",
+          "description": "auto | http | browser — when in doubt leave as auto"
+        },
+        {
+          "name": "stealth",
+          "value": "false",
+          "description": "true = use cloudscraper (anti-bot). Requires scrapex[stealth] on the server."
+        },
+        {
+          "name": "include_markdown",
+          "value": "true"
+        },
+        {
+          "name": "timeout_s",
+          "value": "30"
+        }
+      ]
+    },
+    "options": {
+      "timeout": 60000,
+      "response": {
+        "response": {
+          "responseFormat": "json"
+        }
+      }
+    }
+  },
+  "notesInFlow": true,
+  "notes": "scrapex wrapper — assumes uvicorn is running on localhost:8000.\n\nStart the server with:\n  pip install scrapex[api]\n  uvicorn scrapex.wrappers.fastapi_n8n:app --host 0.0.0.0 --port 8000\n\nResponse fields available downstream:\n  $json.url            final URL (after redirects)\n  $json.status         HTTP status code\n  $json.title          page <title>\n  $json.markdown       page content as markdown\n  $json.extracted      {field_name: value} dict when a schema is provided\n  $json.render_mode    http | browser | cloudscraper\n  $json.error          string or null\n  $json.warnings       array of warnings (e.g. selector mismatches)"
+}

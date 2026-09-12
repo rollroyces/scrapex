@@ -403,3 +403,58 @@ def _apply_schema_to_html(html: str, schema: Schema) -> dict[str, Any]:
 
 
 __all__ = ["_apply_schema_to_html", "_resolve_default_model", "_synthesize", "explain", "from_goal"]
+
+
+# ---------------------------------------------------------------------------
+# Schema.heal() — auto-patch broken selectors via LLM (one shot)
+# ---------------------------------------------------------------------------
+
+
+def heal(
+    self: Schema,
+    html: str,
+    *,
+    llm_model: str | None = None,
+) -> Schema:
+    """Patch a broken Schema by asking an LLM for new CSS selectors.
+
+    Use this when a page redesigns its DOM and your saved schema's
+    selectors no longer match. The LLM gets the broken schema + the
+    new HTML and returns patched selectors. One LLM call, no loops.
+
+    Parameters
+    ----------
+    html:
+        The current HTML of the page. Cleaned internally before
+        sending to the LLM (script/style/nav stripped).
+    llm_model:
+        litellm model string. If None, uses the default model
+        resolution (Ollama → OpenAI → error).
+
+    Returns:
+    -------
+    Schema
+        A new Schema with patched selectors. Original is untouched.
+        Fields the LLM couldn't fix keep their original selectors.
+
+    Raises:
+    ------
+    ConfigurationError:
+        If the LLM call fails or returns invalid output.
+
+    Examples:
+    --------
+    >>> result = await scrape(ScrapeRequest(url=..., schema=old_schema))
+    >>> if not result.fields:
+    ...     new_schema = old_schema.heal(page_html)
+    ...     result = await scrape(ScrapeRequest(url=..., schema=new_schema))
+    """
+    from scrapex.schema_healer import _heal_schema
+
+    if llm_model is None:
+        llm_model = _resolve_default_model()
+    result: Schema = _heal_schema(self, html, llm_model=llm_model)
+    return result
+
+
+Schema.heal = heal  # type: ignore[attr-defined]
