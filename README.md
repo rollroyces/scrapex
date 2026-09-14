@@ -503,6 +503,23 @@ We do **not** ship a 2captcha / anti-captcha.com wrapper. Their ToS
 explicitly forbid automated bypass; a library shipping such a wrapper
 would push legal/ToS risk onto every user.
 
+## CI / branch protection
+
+`main` is protected:
+
+- The `lint + types + tests` GitHub Actions job must pass before any PR merges (`required_status_checks`).
+- Force pushes to `main` are blocked (`block_force_pushes=true`).
+- Branch deletion is blocked (`block_deletions=true`).
+- Admin enforcement is **off** — `rollroyces` can still push directly to `main` (no reviewer gate; solo maintainer).
+
+The CI job runs `ruff`, `mypy`, and `pytest` with the `--ignore=tests/integration/test_heal_live.py` and `--ignore=tests/integration/test_heal_real_websites.py` flags — those tests need a live LLM and an HTTP fixture server, respectively. Coverage is gated at 80% (current: 91%).
+
+To re-run the integration tests locally (after you set `OPENAI_API_KEY`):
+
+```bash
+SKIP_LIVE=0 pytest tests/integration/ -v
+```
+
 ## Architecture
 
 ```
