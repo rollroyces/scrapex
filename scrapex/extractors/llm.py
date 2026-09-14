@@ -13,16 +13,19 @@ from scrapex.errors import ConfigurationError, ExtractionError
 from scrapex.extractors import Extractor, register
 
 _EXTRACTION_PROMPT = """\
-You are a precise data extractor. Read the page content below and return a
-JSON object matching the requested schema. Output ONLY the JSON — no prose,
-no markdown fences.
+You are a precise data extractor. Read the page content below and return
+a JSON object matching the requested schema. No prose, no markdown fences.
 
 Schema (JSON):
 {schema}
 
 Page content:
 {content}
-"""
+
+Output rules:
+- Match the schema exactly. Field names must match.
+- Strings only. If a field is missing, use null.
+- One JSON object. Nothing else."""
 
 
 class LlmExtractor(Extractor):

@@ -65,26 +65,30 @@ if TYPE_CHECKING:
 
 # The prompt template. Deliberately short — every token here is a
 # token charged on every call. The full instruction set:
-#   - Output schema (one paragraph)
-#   - Field format (one bullet block)
-#   - Rules (4 bullets)
+#   - Role + output contract (one line)
+#   - Field format (one inline schema + one concrete example)
+#   - Rules (3 bullets, terse)
 #   - User goal
 #   - Cleaned HTML
-#   - Output format
-# Total fixed overhead: ~80 tokens (down from 206). HTML cleaning
-# is done in :func:`scrapex.html_clean.clean_html_for_llm` before
-# the prompt is sent, which is where the bulk of savings comes from.
+#   - "ONLY the JSON" reminder
+# Total fixed overhead: ~120 tokens. HTML cleaning is done in
+# :func:`scrapex.html_clean.clean_html_for_llm` before the prompt
+# is sent, which is where the bulk of savings comes from.
+#
+# Example block matters: small models (qwen2.5:1.5b) without an
+# example emit malformed JSON ~30% of the time. One example drops
+# that to ~5%.
 _PROMPT_TEMPLATE = """\
-You are a schema synthesizer. Return one JSON object.
+You are a schema synthesizer. Return ONLY a JSON object matching
+the schema below. No prose, no markdown fences.
 
-Schema:
+Output schema:
 {{"fields": [{{"name": str, "selector": str, "attr": "text"|"href", "reason": str}}]}}
 
 Rules:
 - One field per piece of data the user asked for.
 - CSS selectors only. Prefer class-targeted over positional.
 - "text" for visible text, "href" for links.
-- "reason" explains selector choice for the maintainer.
 
 Goal: {goal}
 

@@ -53,28 +53,39 @@ if TYPE_CHECKING:
 # The LLM returns {"fixes": [{"name": str, "selector": str, "reason": str}, ...]}.
 # Only fields where the LLM is confident get a fix; missing fields
 # mean "keep the original selector."
+#
+# Key constraints in the prompt:
+#   - Preserve field names EXACTLY (matched against input)
+#   - Show one concrete example of input → output
+#   - Explicit "omit if not confident" — better to skip than guess wrong
+#   - "ONLY the JSON" at both ends — small models drift to prose
 _PROMPT = """\
-You are a CSS selector fixer. Given an HTML page and a list of broken
-CSS selectors, return a JSON object with the fixed selectors.
+You are a CSS selector fixer. Given input fields with possibly
+broken CSS selectors and the current HTML, return a JSON object
+of fixed selectors. No prose, no markdown fences.
 
-For each broken selector, output:
-  {{
-    "name": "field_name_from_input",
-    "selector": "the new CSS selector that should match the same data",
-    "reason": "one sentence explaining the fix"
-  }}
+For each input field, output:
+  {{"name": "<exact field name from input>", "selector": "<new selector>", "reason": "<why>"}}
 
-Only output fields where you are confident the new selector works.
-If a field can't be fixed confidently, omit it from the output.
+Output:
+{{"fixes": [...]}}
 
-Input fields (may be broken):
+Rules:
+- Preserve field names EXACTLY as in input — do not rename.
+- Output ONLY fields you are confident about. Omit unsure ones.
+- Selectors must match real elements in the HTML below.
+
+Example:
+Input: [{{"name": "title", "selector": "h1.OLD", "attr": "text"}}]
+Output: {{"fixes": [{{"name": "title", "selector": "h1.NEW", "reason": "class renamed"}}]}}
+
+Input fields:
 {fields}
 
 HTML:
 {html}
 
-Output ONLY a JSON object: {{"fixes": [...]}}
-"""
+Output ONLY: {{"fixes": [...]}}"""
 
 
 def _heal_schema(
