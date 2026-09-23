@@ -121,6 +121,13 @@ class ScrapeRequest(BaseModel):
     markdown_max_chars: int | None = Field(default=None, ge=100)
     # Retry
     max_retries: int = Field(default=2, ge=0, le=10)
+    # Auto-heal: when extraction returns empty for all fields, ask the LLM
+    # to patch the schema once and re-extract. Default ON because it's the
+    # difference between "the site redesigned and we silently returned
+    # nothing" and "we noticed and tried to recover." Costs ~1 LLM call on
+    # failure paths only; success paths have zero overhead. Ignored for
+    # ExtractionStrategy.LLM (the LLM is already doing the extraction).
+    auto_heal: bool = True
 
     @field_validator("url")
     @classmethod

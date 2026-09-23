@@ -292,6 +292,42 @@ kwargs = china.resolve("kimi-v1-128k", region="cn")
 
 ---
 
+## Auto-heal on empty extraction
+
+When a CSS/XPath/Regex extraction returns empty for every field, `scrape()` will automatically call `Schema.heal()` once to patch the schema, then re-extract. This handles the common case where a site redesigned its DOM since you saved your schema.
+
+```python
+from scrapex import scrape, ScrapeRequest, Schema, FieldSpec, ExtractionStrategy
+
+# Saved schema with selectors that no longer match (the site redesigned)
+stale = Schema(
+    strategy=ExtractionStrategy.CSS,
+    fields=[FieldSpec(name="title", selector="h1.OLD-CLASS-2024")],
+)
+
+result = await scrape(ScrapeRequest(
+    url="https://example.com/",
+    schema=stale,
+    llm_model="gpt-4o-mini",  # needed for the heal call
+))
+
+# If the LLM could patch the selector, result.extracted["title"] is filled.
+# If not, result.extracted is empty and result.extraction_warnings has a hint.
+```
+
+To disable:
+
+```python
+result = await scrape(ScrapeRequest(url=..., schema=..., auto_heal=False))
+```
+
+**Cost model:** auto-heal only fires when extraction returns empty. Successful extractions have zero overhead. The heal call itself costs ~1 LLM call (~150 tokens). Hard-capped at 1 retry — no recursion, preserves the single-page contract.
+
+**Skipped when:**
+- The strategy is `LLM` (the LLM is already doing the extraction; an empty result means the page didn't have the data, not that the schema is broken)
+- The schema has no fields
+- The extraction is partial (some fields filled — conservatively we don't risk corrupting them)
+
 ## Error hints
 
 Every error class knows what to try next:

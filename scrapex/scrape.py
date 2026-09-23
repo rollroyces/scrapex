@@ -193,6 +193,37 @@ async def scrape(request: ScrapeRequest | dict[str, Any] | str) -> ScrapeResult:
             if f.required and not extracted.get(f.name):
                 warnings.append(f"required field '{f.name}' was not found")
 
+        # Auto-heal: if extraction returned empty for everything AND we're
+        # not using the LLM strategy (which already has its own LLM call),
+        # try patching the schema once. This handles "site redesigned
+        # since you saved the schema" without requiring a manual call.
+        # Hard cap: 1 retry. No recursion — preserves the single-page
+        # scrapex contract.
+        if (
+            req.auto_heal
+            and req.schema_ is not None
+            and req.schema_.fields
+            and strat not in (ExtractionStrategy.NONE, ExtractionStrategy.LLM)
+            and not any(extracted.values())
+        ):
+            try:
+                healed = req.schema_.heal(  # type: ignore[attr-defined]
+                    page.html, llm_model=req.llm_model
+                )
+                # Only retry if the LLM actually changed something
+                if healed != req.schema_:
+                    re_extracted = await extractor.extract(page.html, healed)
+                    if any(re_extracted.values()):
+                        extracted = re_extracted
+                        warnings.append(
+                            "schema auto-healed: original selectors failed, "
+                            "LLM patched them and re-extraction succeeded"
+                        )
+            except Exception as heal_err:
+                # Heal is best-effort. If it fails, return the original
+                # empty result + a warning. Don't crash the user's call.
+                warnings.append(f"auto-heal failed: {type(heal_err).__name__}")
+
     elapsed_ms = int((time.monotonic() - t0) * 1000)
     return ScrapeResult(
         url=str(req.url),
