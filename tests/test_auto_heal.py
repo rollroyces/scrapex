@@ -1,29 +1,37 @@
 """Tests for the auto-heal behavior in scrape().
 
-Auto-heal is opt-in (default ON). When enabled, scrape() detects
-"extraction returned empty for all fields" and calls Schema.heal()
-once to patch the schema, then re-extracts.
+Auto-heal is opt-in (default ON). When enabled and the page was
+browser-rendered, scrape() detects "extraction returned empty for
+all fields" and calls Schema.heal() once to patch the schema,
+then re-extracts.
 
 Hard cap: 1 retry. No recursion (preserves the single-page contract).
 
+Trigger conditions (ALL must be true):
+  - req.auto_heal is True
+  - schema has fields
+  - strategy is not NONE or LLM
+  - page.render_mode == "browser" (HTTP-only fetches usually need
+    JS to render; CSS-selector heal can't fix that)
+  - extraction returned empty for all fields
+
 Quadrants covered:
   1. Extraction succeeds -> no heal
-  2. Extraction empty, heal fixes it -> re-extract succeeds + warning
-  3. Extraction empty, heal returns identical schema -> no extra warning
+  2. Extraction empty + heal fixes it -> re-extract succeeds + warning
+  3. Extraction empty + heal returns identical schema -> no extra warning
   4. auto_heal=False -> no heal call
-  5. LLM strategy -> heal skipped (LLM is the extractor itself)
+  5. LLM strategy -> heal skipped
   6. Heal raises -> warning + original empty result, no crash
   7. No schema -> no heal trigger
   8. Partial extraction (some fields filled) -> no heal trigger
+  9. HTTP-rendered page -> heal skipped (page likely needs JS rendering)
 """
 from __future__ import annotations
 
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-import respx
-from httpx import Response
 
 from scrapex import (
     ExtractionStrategy,
@@ -32,6 +40,7 @@ from scrapex import (
     ScrapeRequest,
     scrape,
 )
+from scrapex.fetchers import FetchedPage
 
 SAMPLE_HTML = """
 <html>
@@ -42,6 +51,34 @@ SAMPLE_HTML = """
 </body>
 </html>
 """
+
+
+def _browser_page(url: str = "https://test.example/") -> FetchedPage:
+    """A FetchedPage that looks like it came from the browser fetcher."""
+    return FetchedPage(
+        url=url,
+        status=200,
+        html=SAMPLE_HTML,
+        render_mode="browser",
+        title="Test Page",
+    )
+
+
+def _http_page(url: str = "https://test.example/") -> FetchedPage:
+    """A FetchedPage from the HTTP fetcher (no JS rendering)."""
+    return FetchedPage(
+        url=url,
+        status=200,
+        html=SAMPLE_HTML,
+        render_mode="http",
+        title="Test Page",
+    )
+
+
+async def _fake_fetch_with_retry(page: FetchedPage) -> FetchedPage:
+    """Stand-in for scrape._fetch_with_retry that just returns the page."""
+    return page
+
 
 # The "broken" schema targets classes that don't exist in SAMPLE_HTML.
 # Auto-heal should patch them to the real classes (title + price).
@@ -107,15 +144,16 @@ class _HealPatch:
 @pytest.mark.asyncio
 async def test_auto_heal_not_triggered_on_success():
     """Working schema extracts correctly. Heal is never called."""
-    with respx.mock(base_url="https://test.example") as r:
-        r.get("/").mock(return_value=Response(200, text=SAMPLE_HTML))
-        with _HealPatch([]) as p:
-            req = ScrapeRequest(
-                url="https://test.example/",
-                schema=WORKING_SCHEMA,
-                llm_model="test-model",
-            )
-            result = await scrape(req)
+    with patch(
+        "scrapex.scrape._fetch_with_retry",
+        new=AsyncMock(return_value=_browser_page()),
+    ), _HealPatch([]) as p:
+        req = ScrapeRequest(
+            url="https://test.example/",
+            schema=WORKING_SCHEMA,
+            llm_model="test-model",
+        )
+        result = await scrape(req)
 
     assert result.extracted["title"] == "Hello World"
     assert result.extracted["price"] == "$42.50"
@@ -140,15 +178,16 @@ async def test_auto_heal_triggers_on_empty_extraction():
             FieldSpec(name="price", selector="div.price"),
         ],
     )
-    with respx.mock(base_url="https://test.example") as r:
-        r.get("/").mock(return_value=Response(200, text=SAMPLE_HTML))
-        with _HealPatch(fixed.fields) as p:
-            req = ScrapeRequest(
-                url="https://test.example/",
-                schema=BROKEN_SCHEMA,
-                llm_model="test-model",
-            )
-            result = await scrape(req)
+    with patch(
+        "scrapex.scrape._fetch_with_retry",
+        new=AsyncMock(return_value=_browser_page()),
+    ), _HealPatch(fixed.fields) as p:
+        req = ScrapeRequest(
+            url="https://test.example/",
+            schema=BROKEN_SCHEMA,
+            llm_model="test-model",
+        )
+        result = await scrape(req)
 
     # Heal was called once
     assert p.mock_litellm.completion.call_count == 1
@@ -171,10 +210,10 @@ async def test_auto_heal_no_warning_when_heal_returns_same_schema():
     This is the "LLM didn't know what to fix" case -- we should be quiet
     about it because the user already has the original empty extraction.
     """
-    with respx.mock(base_url="https://test.example") as r:
-        r.get("/").mock(return_value=Response(200, text=SAMPLE_HTML))
-        # heal returns NO fixes (empty fixes list)
-        with _HealPatch([]) as p:
+    with patch(
+        "scrapex.scrape._fetch_with_retry",
+        new=AsyncMock(return_value=_browser_page()),
+    ), _HealPatch([]) as p:
             req = ScrapeRequest(
                 url="https://test.example/",
                 schema=BROKEN_SCHEMA,
@@ -197,15 +236,16 @@ async def test_auto_heal_no_warning_when_heal_returns_same_schema():
 @pytest.mark.asyncio
 async def test_auto_heal_disabled_skips_heal():
     """When auto_heal=False, heal is never called even on empty extraction."""
-    with respx.mock(base_url="https://test.example") as r:
-        r.get("/").mock(return_value=Response(200, text=SAMPLE_HTML))
-        with _HealPatch([]) as p:
-            req = ScrapeRequest(
-                url="https://test.example/",
-                schema=BROKEN_SCHEMA,
-                auto_heal=False,
-            )
-            result = await scrape(req)
+    with patch(
+        "scrapex.scrape._fetch_with_retry",
+        new=AsyncMock(return_value=_browser_page()),
+    ), _HealPatch([]) as p:
+        req = ScrapeRequest(
+            url="https://test.example/",
+            schema=BROKEN_SCHEMA,
+            auto_heal=False,
+        )
+        result = await scrape(req)
 
     assert p.mock_litellm.completion.call_count == 0
     assert not any(result.extracted.values())
@@ -219,28 +259,25 @@ async def test_auto_heal_disabled_skips_heal():
 
 @pytest.mark.asyncio
 async def test_auto_heal_skipped_for_llm_strategy():
-    """LLM strategy is already LLM-driven; heal would be redundant.
-
-    Empty extraction from an LLM means the page didn't have the data,
-    not that the schema is broken.
-    """
+    """LLM strategy is already LLM-driven; heal would be redundant."""
     from scrapex.extractors.llm import LlmExtractor
 
     async def fake_extract(self, html, schema, **_kw):
         return {}
 
-    with respx.mock(base_url="https://test.example") as r:
-        r.get("/").mock(return_value=Response(200, text=SAMPLE_HTML))
-        with _HealPatch([]) as p, patch.object(LlmExtractor, "extract", new=fake_extract):
-            req = ScrapeRequest(
-                url="https://test.example/",
-                schema=Schema(
-                    strategy=ExtractionStrategy.LLM,
-                    fields=[FieldSpec(name="title", selector="ignored")],
-                ),
-                llm_model="test-model",
-            )
-            result = await scrape(req)
+    with patch(
+        "scrapex.scrape._fetch_with_retry",
+        new=AsyncMock(return_value=_browser_page()),
+    ), _HealPatch([]) as p, patch.object(LlmExtractor, "extract", new=fake_extract):
+        req = ScrapeRequest(
+            url="https://test.example/",
+            schema=Schema(
+                strategy=ExtractionStrategy.LLM,
+                fields=[FieldSpec(name="title", selector="ignored")],
+            ),
+            llm_model="test-model",
+        )
+        result = await scrape(req)
 
     assert p.mock_litellm.completion.call_count == 0, (
         "heal was called for LLM strategy"
@@ -255,23 +292,20 @@ async def test_auto_heal_skipped_for_llm_strategy():
 
 @pytest.mark.asyncio
 async def test_auto_heal_failure_does_not_crash():
-    """If heal() raises (e.g. LLM unreachable), we get a warning + empty result.
-
-    The user's call must not crash just because the recovery attempt failed.
-    """
-    with respx.mock(base_url="https://test.example") as r:
-        r.get("/").mock(return_value=Response(200, text=SAMPLE_HTML))
-        # Mock heal to raise
-        with patch.object(
-            Schema, "heal", side_effect=RuntimeError("LLM unreachable")
-        ):
-            req = ScrapeRequest(
-                url="https://test.example/",
-                schema=BROKEN_SCHEMA,
-                llm_model="test-model",
-            )
-            # Must not raise
-            result = await scrape(req)
+    """If heal() raises (e.g. LLM unreachable), warning + empty result, no crash."""
+    with patch(
+        "scrapex.scrape._fetch_with_retry",
+        new=AsyncMock(return_value=_browser_page()),
+    ), patch.object(
+        Schema, "heal", side_effect=RuntimeError("LLM unreachable")
+    ):
+        req = ScrapeRequest(
+            url="https://test.example/",
+            schema=BROKEN_SCHEMA,
+            llm_model="test-model",
+        )
+        # Must not raise
+        result = await scrape(req)
 
     # Original empty result preserved
     assert not any(result.extracted.values())
@@ -288,11 +322,12 @@ async def test_auto_heal_failure_does_not_crash():
 @pytest.mark.asyncio
 async def test_auto_heal_skipped_when_no_schema():
     """No schema means no extraction -> no heal trigger."""
-    with respx.mock(base_url="https://test.example") as r:
-        r.get("/").mock(return_value=Response(200, text=SAMPLE_HTML))
-        with _HealPatch([]) as p:
-            req = ScrapeRequest(url="https://test.example/")
-            result = await scrape(req)
+    with patch(
+        "scrapex.scrape._fetch_with_retry",
+        new=AsyncMock(return_value=_browser_page()),
+    ), _HealPatch([]) as p:
+        req = ScrapeRequest(url="https://test.example/")
+        result = await scrape(req)
 
     assert p.mock_litellm.completion.call_count == 0
     assert not result.extracted
@@ -311,17 +346,58 @@ async def test_auto_heal_skipped_when_extraction_partial():
     async def fake_extract(self, html, schema, **_kw):
         return {"title": "Hello World"}  # price is missing
 
-    with respx.mock(base_url="https://test.example") as r:
-        r.get("/").mock(return_value=Response(200, text=SAMPLE_HTML))
-        with _HealPatch([]) as p, patch.object(CssExtractor, "extract", new=fake_extract):
-            req = ScrapeRequest(
-                url="https://test.example/",
-                schema=BROKEN_SCHEMA,
-                llm_model="test-model",
-            )
-            result = await scrape(req)
+    with patch(
+        "scrapex.scrape._fetch_with_retry",
+        new=AsyncMock(return_value=_browser_page()),
+    ), _HealPatch([]) as p, patch.object(CssExtractor, "extract", new=fake_extract):
+        req = ScrapeRequest(
+            url="https://test.example/",
+            schema=BROKEN_SCHEMA,
+            llm_model="test-model",
+        )
+        result = await scrape(req)
 
     assert p.mock_litellm.completion.call_count == 0, (
         "heal triggered on partial extraction (false positive)"
     )
     assert result.extracted["title"] == "Hello World"
+
+
+# ---------------------------------------------------------------------------
+# Quadrant 9: HTTP-only page -> heal skipped (the trigger narrowing)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_auto_heal_skipped_for_http_only_page():
+    """HTTP-only fetches usually need JS to render; CSS-selector heal
+    can't fix that. Auto-heal is narrowed to fire only on browser pages.
+
+    This is the right behavior for a JS-heavy site whose CSS schema
+    returns empty because the data is rendered client-side: heal would
+    fire, ask the LLM, get a CSS selector against the rendered HTML,
+    fail again, and waste a token call. By gating on render_mode, we
+    only heal when the rendered HTML actually had the data and the
+    schema was the problem.
+    """
+    with patch(
+        "scrapex.scrape._fetch_with_retry",
+        new=AsyncMock(return_value=_http_page()),
+    ), _HealPatch(
+        [
+            FieldSpec(name="title", selector="h1.title"),
+            FieldSpec(name="price", selector="div.price"),
+        ]
+    ) as p:
+        req = ScrapeRequest(
+            url="https://test.example/",
+            schema=BROKEN_SCHEMA,
+            llm_model="test-model",
+        )
+        result = await scrape(req)
+
+    # Heal was NOT called (HTTP-only page)
+    assert p.mock_litellm.completion.call_count == 0, (
+        "heal fired on HTTP-only page -- wasted tokens on JS-render issue"
+    )
+    assert not any(result.extracted.values())

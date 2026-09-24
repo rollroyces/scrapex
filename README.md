@@ -294,10 +294,10 @@ kwargs = china.resolve("kimi-v1-128k", region="cn")
 
 ## Auto-heal on empty extraction
 
-When a CSS/XPath/Regex extraction returns empty for every field, `scrape()` will automatically call `Schema.heal()` once to patch the schema, then re-extract. This handles the common case where a site redesigned its DOM since you saved your schema.
+When a CSS/XPath/Regex extraction returns empty for every field **and the page was browser-rendered**, `scrape()` will automatically call `Schema.heal()` once to patch the schema, then re-extract. This handles the common case where a site redesigned its DOM since you saved your schema.
 
 ```python
-from scrapex import scrape, ScrapeRequest, Schema, FieldSpec, ExtractionStrategy
+from scrapex import scrape, ScrapeRequest, Schema, FieldSpec, ExtractionStrategy, RenderMode
 
 # Saved schema with selectors that no longer match (the site redesigned)
 stale = Schema(
@@ -308,7 +308,8 @@ stale = Schema(
 result = await scrape(ScrapeRequest(
     url="https://example.com/",
     schema=stale,
-    llm_model="gpt-4o-mini",  # needed for the heal call
+    render=RenderMode.BROWSER,  # auto-heal only fires on browser-rendered pages
+    llm_model="gpt-4o-mini",    # needed for the heal call
 ))
 
 # If the LLM could patch the selector, result.extracted["title"] is filled.
@@ -321,12 +322,17 @@ To disable:
 result = await scrape(ScrapeRequest(url=..., schema=..., auto_heal=False))
 ```
 
-**Cost model:** auto-heal only fires when extraction returns empty. Successful extractions have zero overhead. The heal call itself costs ~1 LLM call (~150 tokens). Hard-capped at 1 retry — no recursion, preserves the single-page contract.
+**Cost model:** auto-heal only fires when extraction returns empty on a browser-rendered page. Successful extractions have zero overhead. The heal call itself costs ~$0.0002–$0.0008 (gpt-4o-mini: ~700–1000 input tokens + ~50 output tokens, depending on page size). Hard-capped at 1 retry — no recursion, preserves the single-page contract.
 
 **Skipped when:**
 - The strategy is `LLM` (the LLM is already doing the extraction; an empty result means the page didn't have the data, not that the schema is broken)
 - The schema has no fields
+- The page was HTTP-fetched only (render_mode="http"). Most likely the page needs JS to render — CSS-selector heal can't fix that, and would just waste tokens. Use `render=RenderMode.BROWSER` (or `RenderMode.AUTO`) to enable auto-heal.
 - The extraction is partial (some fields filled — conservatively we don't risk corrupting them)
+
+**Honest caveats:**
+- The LLM may produce selectors that *look* correct but match the wrong DOM element (silent-failure mode). The "auto-healed" warning means "I tried" not "I verified."
+- Real-LLM heal quality is unmeasured in this sandbox. Run `tests/integration/test_heal_live.py` with an API key to measure before trusting it on production data.
 
 ## Error hints
 

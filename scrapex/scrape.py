@@ -199,12 +199,18 @@ async def scrape(request: ScrapeRequest | dict[str, Any] | str) -> ScrapeResult:
         # since you saved the schema" without requiring a manual call.
         # Hard cap: 1 retry. No recursion — preserves the single-page
         # scrapex contract.
+        #
+        # Narrowed trigger: only fires when the page was browser-rendered.
+        # For HTTP-only fetches, empty extraction usually means "the page
+        # needs JS to render," which CSS-selector heal can't fix. Firing
+        # heal on HTTP-fetched pages would waste tokens without helping.
         if (
             req.auto_heal
             and req.schema_ is not None
             and req.schema_.fields
             and strat not in (ExtractionStrategy.NONE, ExtractionStrategy.LLM)
             and not any(extracted.values())
+            and page.render_mode == "browser"
         ):
             try:
                 healed = req.schema_.heal(  # type: ignore[attr-defined]
