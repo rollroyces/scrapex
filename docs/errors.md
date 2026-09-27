@@ -52,5 +52,4 @@ Common warnings:
 
 ## Next
 
-- [Speculative features](speculative.md)
 - [Contrib modules](contrib.md)

@@ -43,6 +43,8 @@ stealth = ["cloudscraper>=1.2"]
 api = ["fastapi>=0.100", "uvicorn>=0.23"]
 # All optional features
 all = ["scrapex[llm,browser,stealth,api]"]
+# Docs i18n tooling — only needed for translators building localized docs
+docs-i18n = ["mkdocs-static-i18n>=1.3"]
 dev = [
     "scrapex[all]",
     "pytest>=8.0",
@@ -53,6 +55,7 @@ dev = [
     "respx>=0.21",  # httpx mocking for tests
     "mkdocs>=1.5",  # docs build
     "mkdocs-material>=9.4",  # docs theme
+    "scrapex[docs-i18n]",
 ]
 
 [project.urls]

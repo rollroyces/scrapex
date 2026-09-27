@@ -70,4 +70,3 @@ Auto-heal triggers when **all** of these are true:
 ## Next
 
 - [Error hints](errors.md) — what the warnings in `extraction_warnings` mean
-- [Speculative features](speculative.md) — features built but not measured

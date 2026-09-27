@@ -63,6 +63,24 @@ nav:
 
 plugins:
   - search
+  # NOTE: mkdocs-static-i18n is in [dev] extra but not enabled by default
+  # because it requires custom Material theme partials. To enable, install
+  # `pip install 'scrapex[docs-i18n]'`, drop the comment markers below, and
+  # add translated pages to docs/ (e.g., docs/index.zh-Hant.md).
+  #
+  # - i18n:
+  #     docs_structure: suffix
+  #     languages:
+  #       - locale: en
+  #         name: English
+  #         build: true
+  #         default: true
+  #       - locale: zh-Hant
+  #         name: 繁體中文
+  #         build: true
+  #       - locale: zh-Hans
+  #         name: 简体中文
+  #         build: true
 
 extra:
   generator: false

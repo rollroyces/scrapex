@@ -1,19 +1,21 @@
-__pycache__/
-*.py[cod]
-*$py.class
-*.egg-info/
-.eggs/
+# Build artifacts
 dist/
 build/
-.venv/
-venv/
-.env
-.env.local
-.coverage
-htmlcov/
+site/
+*.egg-info/
+
+# Test caches
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 *.log
+
+# OS
 .DS_Store
-captcha-challenge.pngsite/
+
+# Editor
+.vscode/
+.idea/
+
+# Test artifacts
+captcha-challenge.png
