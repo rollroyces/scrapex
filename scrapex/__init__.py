@@ -61,7 +61,7 @@ with contextlib.suppress(Exception):
     _attach_schema_synthesis()
 
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "ConfigurationError",

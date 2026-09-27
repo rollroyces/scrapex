@@ -1,6 +1,6 @@
 [project]
 name = "scrapex"
-version = "0.1.0"
+version = "0.2.0"
 description = "AI-friendly web scraping for Python — URL + schema in, clean markdown + JSON out"
 readme = "README.md"
 license = "AGPL-3.0-or-later"
@@ -51,6 +51,8 @@ dev = [
     "ruff>=0.4",
     "mypy>=1.8",
     "respx>=0.21",  # httpx mocking for tests
+    "mkdocs>=1.5",  # docs build
+    "mkdocs-material>=9.4",  # docs theme
 ]
 
 [project.urls]

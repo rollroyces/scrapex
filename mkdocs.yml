@@ -1,0 +1,75 @@
+site_name: scrapex
+site_description: AI-friendly web scraping for Python — URL + schema in, clean markdown + JSON out
+site_url: https://rollroyces.github.io/scrapex/
+repo_url: https://github.com/rollroyces/scrapex
+repo_name: rollroyces/scrapex
+
+docs_dir: docs
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - search.suggest
+    - content.code.copy
+    - content.code.annotate
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Quickstart: quickstart.md
+  - Extraction strategies: strategies.md
+  - China LLM providers: china-llm.md
+  - Auto-heal: auto-heal.md
+  - Cloudflare bypass: cloudflare.md
+  - Error hints: errors.md
+  - Speculative features: speculative.md
+  - Contrib modules: contrib.md
+
+plugins:
+  - search
+
+extra:
+  generator: false
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/rollroyces/scrapex
+
+extra_css:
+  - stylesheets/extra.css
