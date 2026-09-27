@@ -1,6 +1,6 @@
 [project]
 name = "scrapex"
-version = "0.2.0"
+version = "0.2.1"
 description = "AI-friendly web scraping for Python — URL + schema in, clean markdown + JSON out"
 readme = "README.md"
 license = "AGPL-3.0-or-later"

@@ -59,7 +59,6 @@ nav:
   - Auto-heal: auto-heal.md
   - Cloudflare bypass: cloudflare.md
   - Error hints: errors.md
-  - Speculative features: speculative.md
   - Contrib modules: contrib.md
 
 plugins:

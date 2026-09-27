@@ -13,10 +13,6 @@
         <link rel="canonical" href="https://rollroyces.github.io/scrapex/speculative/">
       
       
-        <link rel="prev" href="../errors/">
-      
-      
-        <link rel="next" href="../contrib/">
       
       
         
@@ -377,27 +373,6 @@
   
   
   
-    
-  
-  
-    <li class="md-tabs__item md-tabs__item--active">
-      <a href="./" class="md-tabs__link">
-        
-  
-  
-    
-  
-  Speculative features
-
-      </a>
-    </li>
-  
-
-      
-        
-  
-  
-  
   
     <li class="md-tabs__item">
       <a href="../contrib/" class="md-tabs__link">
@@ -678,146 +653,6 @@
       
   
   
-    
-  
-  
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Speculative features
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Speculative features
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#whats-speculative" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What's speculative
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#why-theyre-speculative" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Why they're speculative
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#what-this-means-for-users" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What this means for users
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#removal-in-v030" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Removal in v0.3.0
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#honest-caveats" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Honest caveats
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#next" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Next
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
   
   
     <li class="md-nav__item">
@@ -868,10 +703,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#whats-speculative" class="md-nav__link">
+  <a href="#what-was-removed" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What's speculative
+        What was removed
       
     </span>
   </a>
@@ -879,10 +714,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-theyre-speculative" class="md-nav__link">
+  <a href="#why-they-were-removed" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why they're speculative
+        Why they were removed
       
     </span>
   </a>
@@ -890,10 +725,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#what-this-means-for-users" class="md-nav__link">
+  <a href="#lesson" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What this means for users
+        Lesson
       
     </span>
   </a>
@@ -901,32 +736,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#removal-in-v030" class="md-nav__link">
+  <a href="#if-you-need-these-features-back" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Removal in v0.3.0
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#honest-caveats" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Honest caveats
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#next" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Next
+        If you need these features back
       
     </span>
   </a>
@@ -954,61 +767,47 @@
 
 
 <h1 id="speculative-features">Speculative features<a class="headerlink" href="#speculative-features" title="Permanent link">&para;</a></h1>
-<p>scrapex has a few features that were built without measurement. <strong>Use with care.</strong></p>
-<h2 id="whats-speculative">What's speculative<a class="headerlink" href="#whats-speculative" title="Permanent link">&para;</a></h2>
+<p>scrapex previously shipped a few features that were built without measurement. <strong>They were removed in v0.2.1.</strong></p>
+<h2 id="what-was-removed">What was removed<a class="headerlink" href="#what-was-removed" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
 <th>Feature</th>
-<th>File</th>
-<th>Status</th>
+<th>Removed in</th>
+<th>Reason</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>scrapex.selector_rank._rank_selectors()</code></td>
-<td><code>scrapex/selector_rank.py</code></td>
-<td>Built per user request; not in public API</td>
+<td>v0.2.1</td>
+<td>Built without measurement; no evidence the LLM call improved selector quality</td>
 </tr>
 <tr>
 <td><code>scrapex.page_classify.classify_page()</code></td>
-<td><code>scrapex/page_classify.py</code></td>
-<td>Built per user request; not in public API</td>
+<td>v0.2.1</td>
+<td>Built without measurement; the regex-based v1 had a known bug (returned "unknown" on disclaimer pages); the BS4-based v2 wasn't benchmarked</td>
 </tr>
 </tbody>
 </table>
-<p>Both files exist in the codebase but are <strong>not exported</strong> from <code>scrapex/__init__.py</code> and <strong>not covered by the test suite</strong> with real-world inputs.</p>
-<h2 id="why-theyre-speculative">Why they're speculative<a class="headerlink" href="#why-theyre-speculative" title="Permanent link">&para;</a></h2>
+<h2 id="why-they-were-removed">Why they were removed<a class="headerlink" href="#why-they-were-removed" title="Permanent link">&para;</a></h2>
 <p>These features were built before being measured:</p>
 <ul>
 <li><code>selector_rank</code> — adds an LLM call to rank CSS selectors. Untested hypothesis: ranking helps small models pick the right selector.</li>
 <li><code>page_classify</code> — classifies a page as <code>DISCLAIMER</code> / <code>FORM</code> / <code>LIST</code> / <code>DETAIL</code> / <code>SEARCH</code> / <code>UNKNOWN</code>. Untested hypothesis: classification enables smarter default schemas.</li>
 </ul>
-<p>Neither has been benchmarked against real pages with a real LLM.</p>
-<h2 id="what-this-means-for-users">What this means for users<a class="headerlink" href="#what-this-means-for-users" title="Permanent link">&para;</a></h2>
-<p>You probably shouldn't import these. They're in the codebase so that:</p>
+<p>Neither was benchmarked against real pages with a real LLM. Code without measurement is technical debt, not progress.</p>
+<h2 id="lesson">Lesson<a class="headerlink" href="#lesson" title="Permanent link">&para;</a></h2>
+<p>If you find a feature in scrapex that you'd like to add but isn't proven, the right approach is:</p>
 <ol>
-<li>The work isn't lost if measurement proves them valuable</li>
-<li>Other contributors can pick up the measurement work</li>
+<li>Build it</li>
+<li><strong>Measure it</strong> with <code>tests/integration/test_heal_live.py</code> or a similar harness</li>
+<li>If measurement proves it helps → graduate to the public API with docs</li>
+<li>If measurement is inconclusive or negative → don't ship it</li>
 </ol>
-<p>If you do want to experiment, import them directly:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">scrapex.selector_rank</span><span class="w"> </span><span class="kn">import</span> <span class="n">_rank_selectors</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">scrapex.page_classify</span><span class="w"> </span><span class="kn">import</span> <span class="n">classify_page_v2</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># Not part of the public API; behavior may change without notice</span>
-</code></pre></div>
-<h2 id="removal-in-v030">Removal in v0.3.0<a class="headerlink" href="#removal-in-v030" title="Permanent link">&para;</a></h2>
-<p>If benchmarks (run by the maintainer) show no value, these will be removed in v0.3.0. Don't depend on them in production code.</p>
-<h2 id="honest-caveats">Honest caveats<a class="headerlink" href="#honest-caveats" title="Permanent link">&para;</a></h2>
-<ul>
-<li>The hypothesis that these features help is <strong>unverified</strong>.</li>
-<li>Code without measurement is technical debt, not progress.</li>
-<li>If you find a real-world case where these would help, please open an issue with reproducible evidence — that's how they graduate from speculative to stable.</li>
-</ul>
-<h2 id="next">Next<a class="headerlink" href="#next" title="Permanent link">&para;</a></h2>
-<ul>
-<li><a href="../contrib/">Contrib modules</a></li>
-</ul>
+<p>The previous workflow of "build it, label it speculative, ship it" was wrong. Speculative code in the codebase has no accountability — it just sits there until someone removes it.</p>
+<h2 id="if-you-need-these-features-back">If you need these features back<a class="headerlink" href="#if-you-need-these-features-back" title="Permanent link">&para;</a></h2>
+<p>The git history has them (commits before v0.2.1). If you have a real use case and benchmark data showing they help, file an issue with reproducible evidence and we can reintroduce them properly.</p>
 
 
 

@@ -456,37 +456,6 @@ result = await scrape(ScrapeRequest(
 - Cloudflare interstitial is just the first page (Playwright is
   better at follow-on JS-heavy flows)
 
-## Speculative features (use with care)
-
-These modules are shipped but **explicitly speculative** — built before
-the spike that would validate them. If they don't help with your
-real workflow, document the failure mode and we may revert.
-
-| Module | What it does | When to try it |
-|---|---|---|
-| `scrapex.selector_rank._rank_selectors(html, hint)` | Extra LLM call to rank CSS selectors by how well they match a natural-language hint | When `Schema.from_goal()` picks a bad selector |
-| `scrapex.page_classify.classify_page(html)` | Fast regex-based page type classifier (no LLM call) | When you need a coarse signal without paying LLM cost |
-| `scrapex.page_classify.classify_page_v2(html)` | Stronger classifier using BeautifulSoup structure | Same as above, ~10× slower, more accurate |
-
-**Honest verdict on these:** they exist because we needed to ship
-something while waiting on the SRPE probe (spike 006) to tell us what
-browser-use actually fails at. They might be reverted if the probe
-shows browser-use handles all of this on its own.
-
-**Token optimization (built-in).** Before the LLM call, `from_goal()`
-strips noise from the HTML (`<script>`, `<style>`, comments, nav,
-footer, header, aside) and collapses whitespace. The prompt template
-itself is ~100 tokens. On a typical news-style page this gives:
-
-| Component | Before | After | Savings |
-|---|---|---|---|
-| Prompt template | 206 tokens | 113 tokens | -45% |
-| HTML payload (real page) | ~2,000 tokens | ~550 tokens | -73% |
-| **Total per call** | **~2,200 tokens** | **~650 tokens** | **-71%** |
-
-Run `python spikes/005-llm-schema/measure.py` to see the actual
-numbers for your own pages.
-
 ## Optional contrib modules
 
 scrapex ships two **opt-in** helpers under `scrapex.contrib.*`. They are

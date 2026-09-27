@@ -6,6 +6,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-09-13
+
+### Removed
+
+- `scrapex.selector_rank` — speculative feature built without measurement.
+  The git history has it (commits before v0.2.1) if anyone needs to
+  revive it with benchmarks.
+- `scrapex.page_classify` — speculative feature built without measurement.
+  The regex-based v1 had a known bug (returned "unknown" on disclaimer
+  pages); the BS4-based v2 wasn't benchmarked. Removed per the lesson
+  in `docs/speculative.md`: "build → measure → graduate" is the right
+  workflow, not "build → label speculative → ship."
+
 ## [0.2.0] - 2026-09-13
 
 ### Added
