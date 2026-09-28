@@ -66,6 +66,30 @@ DEEPSEEK_API_KEY=sk-... \
 python -m scrapex https://spa.example.com --render browser
 ```
 
+### Synthesize a schema from a natural-language goal
+
+If you don't want to hand-write selectors, the `synth` subcommand reads
+HTML (from a URL or a local file) and asks an LLM to propose a Schema
+for the goal you describe. The schema is printed as JSON to stdout —
+pipe it into a file and reuse it with `--schema` on subsequent scrapes:
+
+```bash
+# From a URL
+python -m scrapex synth "extract the product title and price" \
+    --synth-url https://shop.example.com/widget \
+    --synth-output schema.json
+
+# From a local HTML file (no fetch, no network cost on the page side)
+python -m scrapex synth "extract the article title and author" \
+    --html-file page.html \
+    --synth-output article-schema.json
+```
+
+The subcommand costs one LLM call (~$0.0002-$0.0008 on gpt-4o-mini).
+Without `--synth-model`, it auto-detects: Ollama if it's running locally
+(`qwen2.5:1.5b` is the default), else OpenAI if `OPENAI_API_KEY` is set.
+Install with `pip install 'scrapex[llm]'` to enable the `[llm]` extra.
+
 Output:
 
 ```

@@ -14,6 +14,7 @@ import argparse
 import asyncio
 import os
 import sys
+from pathlib import Path
 from typing import Any
 
 from scrapex import (
@@ -161,6 +162,11 @@ def build_parser() -> argparse.ArgumentParser:
     Returned parser exposes the same flags documented in the README's
     CLI section. Lives in its own function so tests can introspect it
     without invoking the full ``main()`` flow.
+
+    The CLI supports two modes:
+      - Default scrape mode: `scrapex <url> [flags]`
+      - Synth mode: `scrapex synth <goal> --url <url> [flags]`
+    Detection happens in ``main()`` based on the first positional arg.
     """
     p = argparse.ArgumentParser(
         prog="scrapex",
@@ -266,6 +272,139 @@ def _parse_schema(
 
 
 # ---------------------------------------------------------------------------
+# Synth subcommand — synthesize a Schema from a goal + HTML
+# ---------------------------------------------------------------------------
+
+
+def _build_synth_parser() -> argparse.ArgumentParser:
+    """Build a parser for the `synth` subcommand.
+
+    Usage:
+        scrapex synth <goal> --synth-url <url> [--html-file ...] [-o ...]
+
+    Args:
+        goal: Natural-language goal string (positional, required).
+        --synth-url: URL to fetch HTML from.
+        --html-file: Local HTML file (alternative to --synth-url).
+        --synth-output, -o: Where to write the JSON schema (default stdout).
+        --synth-model: LLM model string.
+
+    Exit codes match the main CLI:
+        0 — success
+        1 — LLM call failed
+        2 — bad arguments
+    """
+    p = argparse.ArgumentParser(
+        prog="scrapex synth",
+        description="Synthesize a Schema from a natural-language goal + HTML.",
+    )
+    p.add_argument("goal", help="Natural-language goal. Example: 'Extract the product title and price'")
+    p.add_argument(
+        "--synth-url",
+        help="URL to fetch HTML from (mutually exclusive with --html-file)",
+    )
+    p.add_argument(
+        "--html-file",
+        help="Path to a local HTML file (mutually exclusive with --synth-url)",
+    )
+    p.add_argument(
+        "--synth-output",
+        "-o",
+        default=None,
+        help="Where to write the synthesized schema (JSON). Default: stdout.",
+    )
+    p.add_argument(
+        "--synth-model",
+        default=None,
+        help="LLM model string (e.g. 'gpt-4o-mini'). Default: heuristic resolution.",
+    )
+    return p
+
+
+async def _synth_async(args: argparse.Namespace) -> int:
+    """Run the synth subcommand. Returns process exit code."""
+    # Validate mutually exclusive options
+    if bool(args.synth_url) == bool(args.html_file):
+        _err("Specify exactly one of --synth-url or --html-file")
+        return 2
+
+    # Get the HTML
+    if args.html_file:
+        try:
+            html = Path(args.html_file).read_text(encoding="utf-8")
+        except OSError as e:
+            _err(f"Cannot read {args.html_file}: {e}")
+            return 1
+    else:
+        # Fetch the URL
+        import httpx
+
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                r = await client.get(args.synth_url, follow_redirects=True)
+                r.raise_for_status()
+                html = r.text
+        except Exception as e:
+            _err(f"Cannot fetch {args.synth_url}: {type(e).__name__}: {e}")
+            return 1
+
+    # Call Schema.from_goal
+    try:
+        # Late import: Schema.from_goal is attached at import time, but
+        # the litellm dependency is lazy (only needed when synth is used).
+        from scrapex.schema_synth import _resolve_default_model
+
+        llm_model = args.synth_model or _resolve_default_model()
+    except Exception as e:
+        _err(f"LLM setup failed: {e}")
+        return 1
+
+    _info(
+        f"Synthesizing schema for: {args.goal!r}\n"
+        f"  HTML source: {'file' if args.html_file else args.synth_url}\n"
+        f"  Model: {llm_model}\n"
+        f"  Cost: ~1 LLM call, ~$0.0002-$0.0008 (gpt-4o-mini)"
+    )
+
+    try:
+        # Schema.from_goal is a regular sync method (returns Schema directly)
+        # The method is attached at import time (monkey-patched onto Schema),
+        # so mypy can't see it on the class definition — attr-defined false positive.
+        schema = Schema.from_goal(  # type: ignore[attr-defined]
+            goal=args.goal,
+            html=html,
+            llm_model=llm_model,
+        )
+    except Exception as e:
+        _err(f"Schema synthesis failed: {type(e).__name__}: {e}")
+        return 1
+
+    # Serialize the schema as JSON
+    schema_json = schema.model_dump_json(indent=2)
+
+    # Write or print
+    if args.synth_output and args.synth_output != "-":
+        out_path = Path(args.synth_output)
+        out_path.write_text(schema_json + "\n", encoding="utf-8")
+        _info(f"Wrote schema to {args.synth_output}")
+    else:
+        print(schema_json)
+
+    return 0
+
+
+def _synth_main(argv: list[str]) -> int:
+    """Synchronous entry for the synth subcommand."""
+    parser = _build_synth_parser()
+    args = parser.parse_args(argv)
+    try:
+        return asyncio.run(_synth_async(args))
+    except KeyboardInterrupt:
+        _info("Interrupted.")
+        return 130
+
+
+# ---------------------------------------------------------------------------
 # Main entry
 # ---------------------------------------------------------------------------
 def main(argv: list[str] | None = None) -> int:
@@ -283,6 +422,15 @@ def main(argv: list[str] | None = None) -> int:
         Optional list of CLI args. When ``None``, ``sys.argv[1:]`` is used.
         Tests pass a custom list to drive the CLI without forking a process.
     """
+    # Subcommand dispatch: if argv[0] == "synth", route to _synth_main.
+    # The first positional arg of scrape mode is the URL, so detecting
+    # the literal string "synth" here doesn't conflict with real URLs
+    # (URLs always start with a scheme like "http").
+    if argv is None:
+        argv = sys.argv[1:]
+    if argv and argv[0] == "synth":
+        return _synth_main(argv[1:])
+
     args = build_parser().parse_args(argv)
 
     # Resolve strategy: preset implies llm; --schema with selectors implies css

@@ -6,6 +6,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- `python -m scrapex synth <goal>` subcommand — synthesize a Schema
+  from a natural-language goal + HTML. Supports `--synth-url <url>` to
+  fetch live HTML, or `--html-file <path>` for offline mode. Outputs
+  the schema as JSON to stdout (or to `--synth-output <file>`).
+  Auto-detects Ollama or OpenAI when `--synth-model` isn't given. One
+  LLM call per invocation (~$0.0002-$0.0008 on gpt-4o-mini).
+
 ## [0.2.1] - 2026-09-13
 
 ### Removed
