@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{# Language switcher styles #}
+{% block styles %}
+  {{ super() }}
+  <style>
+    .md-select__link[hreflang] {
+      text-decoration: none;
+    }
+  </style>
+{% endblock %}
+
+{# Inject language switcher into the header #}
+{% block header %}
+  {{ super() }}
+{% endblock %}
